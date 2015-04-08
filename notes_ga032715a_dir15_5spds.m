@@ -427,10 +427,76 @@ end
 
 %% stimulus-specific info from butts/goldman 2006 and mutual info of dir and spkct
 timebin=20;
-numbs=50;
+maxK=50;
 for t=1:tt-timebin
     t
-    for bsnum=1:numbs
+    for K=1:maxK
+        clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr rcount allresps
+        i=1;
+        for dir=1:numdirs
+            for spd=1:numspds 
+                ind= sub2ind(size(spkct),dir,spd);
+                trialinds=(randperm(length(spkct{dir,spd}),floor(0.7*length(spkct{dir,spd}))));
+                spkct_bs{ind}=[];
+                for trial=trialinds;
+                    spkct_bs{ind}=[spkct_bs{ind},length(find(spk_nf{dir,spd}{trial}<=(t+timebin)))];
+                end
+                tmp(i)=max(spkct_bs{ind});
+                i=i+1;
+            end
+        end
+
+        maxr=max(tmp);
+        
+        for dir=1:numdirs
+            trialstim=cell(2,numdirs*numspds);
+            allresps=cell(1,numdirs*numspds);
+            for spd=1:numspds
+                ind=sub2ind(size(spkct),dir,spd);
+                for trial=1:length(spkct_bs{ind})
+                    trialstim{1,ind}(end+1)=trialdirs_rot(dir);
+                    trialstim{2,ind}(end+1)=spds(spd);
+                end
+                allresps{ind}=[allresps{ind},spkct_bs{ind}];    
+                pstim(ind)=length(spkct_bs{ind});
+            end
+            pstim=pstim/sum(pstim);
+            Hv=-sum(pstim.*log2(pstim));
+
+            for r=1:maxr+1
+                r_inds=find(allresps{ind}==r-1);
+                rcount(r)=length(r_inds);
+%                 stims_byspkct=trialstim{ind}(r_inds);
+%                 pvr(dir,r,:)=hist(spds_byspkct,spds)/(eps+length(spds_byspkct));
+%                 Hvr(dir,r)=-nansum(pvr(dir,r,:).*log2(pvr(dir,r,:)));
+%                 isp(dir,r)=Hv-Hvr(spd,r);
+            end
+            pr(ind,:)=rcount./sum(rcount);
+        end
+        for dir=1:numdirs
+            ptn=0;
+            for spd=1:numspds
+            end
+            for spd=1:numspds
+                ind= sub2ind(size(spkct),dir,spd);
+                spdinds=find(trialstim{2,ind}==spds(spd));
+                dirinds=find(trialstim{1,ind}==trialdirs_rot(dir));
+                stiminds=intersect(spdinds,dirinds);
+                r_bystim=allresps{ind}(stiminds);
+                prstim(ind,:)=hist(r_bystim,0:maxr)/(eps+length(r_bystim));
+    %             issi(spd,dir)=nansum(prtheta(spd,:,dir).*isp(spd,:));
+                ptn=ptn+pstim(ind).*prstim(ind,:);
+            end
+            for spd=1:numspds    
+                ind= sub2ind(size(spkct),dir,spd);                
+                info(ind)=pstim(ind)*nansum(prstim(ind,:).*log2(prstim(ind,:)./(eps+ptn)));
+    %             eff(spd,dir)=(-nansum(pr(spd,:).*log2(pr(spd,:)))-(-nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)))))...
+    %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
+            end
+        end
+        mutinfo_stim(t,K)=sum(info,1);
+        eff_stim(t,K)=squeeze(mutinfo_spd(t,K))./(-nansum(pr.*log2(pr),2));
+        
         clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr isp rcount allresps
         i=1;
         for dir=1:numdirs
@@ -485,8 +551,8 @@ for t=1:tt-timebin
     %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
             end
         end
-        mutinfo_dir(t,bsnum,:)=sum(info,2);
-        eff_dir(t,bsnum,:)=squeeze(mutinfo_dir(t,bsnum,:))./(-nansum(pr.*log2(pr),2));
+        mutinfo_dir(t,K,:)=sum(info,2);
+        eff_dir(t,K,:)=squeeze(mutinfo_dir(t,K,:))./(-nansum(pr.*log2(pr),2));
 
         clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr rcount allresps
         i=1;
@@ -544,8 +610,8 @@ for t=1:tt-timebin
     %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
             end
         end
-        mutinfo_spd(t,bsnum,:)=sum(info,1);
-        eff_spd(t,bsnum,:)=squeeze(mutinfo_spd(t,bsnum,:))./(-nansum(pr.*log2(pr),2));
+        mutinfo_spd(t,K,:)=sum(info,1);
+        eff_spd(t,K,:)=squeeze(mutinfo_spd(t,K,:))./(-nansum(pr.*log2(pr),2));
     end
 end
 
