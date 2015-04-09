@@ -12,9 +12,9 @@ ydata_shuffle = ydata(randperm(size(ydata,1)),randperm(size(ydata,2)));
 % test different values, the number you can use depends on the data sample
 nBins=10;
 [x_binned,x_cuts,x_occ] = adaptbin(reshape(xdata,1,numel(xdata)),nBins);
-x_binned = reshape(x_binned,nWins,size(x_binned,2));
+x_binned = reshape(x_binned,nWins,size(xdata,2));
 [y_binned,y_cuts,y_occ] = adaptbin(reshape(ydata,1,numel(ydata)),nBins);
-y_binned = reshape(y_binned,nWins,size(y_binned,2));
+y_binned = reshape(y_binned,nWins,size(ydata,2));
 
 [x_binned_shuffle,x_cuts_shuffle,x_occ_shuffle] = adaptbin(reshape(xdata_shuffle,1,numel(xdata)),nBins);
 x_binned_shuffle = reshape(x_binned_shuffle,nWins,size(x_binned,2));
