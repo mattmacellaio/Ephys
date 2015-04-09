@@ -24,7 +24,7 @@ catch
     save([savedir,'data.mat'],'data')
 end
 
-%%
+%
 seg_dur=400;  % important if we change the length of the stimulus.
 tdur=6*seg_dur; %-250 to remove transient at beginning
 
@@ -51,7 +51,7 @@ segdata.bspks = segdata.target;
 segdata.nfiles = zeros(1,nTypes);
 tagval=[]; %tagvals identifies the trial condition for all segments within trials (so nTypes*nSegs*nReps long);
 count=0;
-%%
+
 for i=[1:nTypes] %skip dir045_HTL_LTL for now: too many issues with putting short pert seg in matrices
         clear ptemp stemp;
         temp = data(i,1);
@@ -122,7 +122,7 @@ end
 %
 path(path,[rt,'/MattM/Code/population decoding'])
 
-%%
+%
 %
 try
     load([savedir,'nexfile.mat'])
@@ -130,7 +130,7 @@ catch
   [nexFile] = readNexFile()
   save([savedir,'nexfile.mat'],'nexFile')
 end
-%%
+%
 %primary cell: unit 2
 neuron_idx=2;
 %secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
@@ -214,7 +214,7 @@ for i=1:length(triname)
     trispds(i)=str2num(triname{i}(undind+1:dind-1))*prefSpd;
 end
 
-%% fix this after spds are 02/04/08/16/32
+% fix this after spds are 02/04/08/16/32
 % spds=[16 2 32 4 8];
 spds=str2num(num2str(unique(trispds)));
 
@@ -275,19 +275,19 @@ for i=1:length(stsn)
     %1st seg
     tmp=spikes;
     tmp=tmp(tmp>markdou3(2,i)); 
-    tmp=tmp(tmp<markdou3(3,i)+0.2); %+200 ms post-stim end
+    tmp=tmp(tmp<markdou3(3,i)); %+0.1 for each 100 ms post-stim end
     spk_tr{1,i}=1000.*(tmp-markdou3(2,i));
     
     %2nd seg
     tmp=spikes;
     tmp=tmp(tmp>markdou3(4,i));
-    tmp=tmp(tmp<markdou3(5,i)+0.2);
+    tmp=tmp(tmp<markdou3(5,i));
     spk_tr{2,i}=1000*(tmp-markdou3(4,i));
     
     %3rd seg
     tmp=spikes;
     tmp=tmp(tmp>markdou3(6,i));
-    tmp=tmp(tmp<markdou3(7,i)+0.2);
+    tmp=tmp(tmp<markdou3(7,i));
     spk_tr{3,i}=1000.*(tmp-markdou3(6,i));    
 end
 % have a look of the spk_tr, if the firing rate seems too low. maybe we will
@@ -297,7 +297,6 @@ end
 %{segdirinds{tri_type(i)}(seg),tri_spd} to index
 
         %
-%something wrong here
 spk_nf=cell(length(trialdirs),length(spds));
 tri_type=ceil(tri_num/5);
 
@@ -309,7 +308,7 @@ for i=1:length(tri_num)
     end
 end
 
-%
+%why is this not trials x 400?
 tt=400;
 spk_tp=cell(size(trialdirs,2),size(spds,2));
 %
@@ -361,7 +360,7 @@ end
 % %     end
 % end
 
-%% rasters
+% rasters
 % 
 numdirs=size(spk_nf,1);
 trialdirs_rot(1:5)=trialdirs(1:5)-360;
@@ -384,32 +383,32 @@ mycolor=colormap(hsv);
 %     ylim([-180 180])
 %     set(gca,'YTick',-180:45:180,'YTickLabel',-180:45:180)
 % end
-%%
-% tuning curves
+%
+% % tuning curves
 numdirs=size(spk_tp,1);
 numspds=size(spk_tp,2);
-% trialdirs=linspace(0,360,numdirs);
-
-for dir=1:numdirs
-    for spd=1:numspds
-        for trial=1:size(spk_nf{dir,spd})
-            spkct{dir,spd}(trial)=length(spk_nf{dir,spd}{trial});
-        end
-        spk_ct_mean(dir,spd)=mean(sum(spk_tp{dir,spd},2)); %cell of total spks per trial per dir/spd needed?
-        spk_cumct{dir,spd}=cumsum(spk_tp{dir,spd});
-    end
-end
-
-
-figure;hold all
-for i=1:5
-    plot(trialdirs_rot,spk_ct_mean(:,i)./max(max(spk_ct_mean)))
-end
-legend(cellstr(num2str(spds')));
+% % trialdirs=linspace(0,360,numdirs);
+% 
+% for dir=1:numdirs
+%     for spd=1:numspds
+%         for trial=1:size(spk_nf{dir,spd})
+%             spkct{dir,spd}(trial)=length(spk_nf{dir,spd}{trial});
+%         end
+%         spk_ct_mean(dir,spd)=mean(sum(spk_tp{dir,spd},2)); %cell of total spks per trial per dir/spd needed?
+%         spk_cumct{dir,spd}=cumsum(spk_tp{dir,spd});
+%     end
+% end
+% 
+% 
+% figure;hold all
+% for i=1:5
+%     plot(trialdirs_rot,spk_ct_mean(:,i)./max(max(spk_ct_mean)))
+% end
+% legend(cellstr(num2str(spds')));
 
 %% bin
 binsize=20;
-figure;
+% figure;
 for dir=1:numdirs
     for spd=1:numspds
         for t=1:size(spk_tp{dir,spd},2)-binsize
@@ -418,13 +417,30 @@ for dir=1:numdirs
                 fr_bin{dir,spd}(trial,t)=sum(spk_tp{dir,spd}(trial,t:t+binsize))*2; %/200ms*1000ms=spks/s
             end
         end
-    plot(mean(fr_bin{dir,spd},1));
-    hold all
+%     plot(mean(fr_bin{dir,spd},1));
+%     hold all
     end
 end
 
+%%
+data_x=cell(1,numdirs);
+data_y=cell(1,numdirs);
+fracs=[1 0.9 0.8 0.5];
+n_x=12;
+n_y=20;
+nreps=20;
 
-
+for dir=1:numdirs
+    for spd=1:numspds
+        data_x{dir}=[data_x{dir};ones(size(fr_bin{dir,spd})).*spds(spd)];
+        data_y{dir}=[data_y{dir};fr_bin{dir,spd}];
+    end
+    xdata=data_x{dir}';
+    ydata=data_y{dir}';
+    %%wtf why this reshaping problem?
+    info_forarup
+%     [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir},data_y{dir},n_x,n_y,fracs,nreps);
+end
 %% stimulus-specific info from butts/goldman 2006 and mutual info of dir and spkct
 timebin=20;
 maxK=50;
