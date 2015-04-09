@@ -126,6 +126,8 @@ plot(1./datafrac,mean(Ixy(:,:,15),2),'x');
 hold on
 idata = polyval(Iinf(15,1:2),[0 1./datafrac]);
 plot([0 1./datafrac],idata,'r');
+%%
+tShift=0;
 
 figure
 h=errorbar([1:length(Iinf)]+tShift,Iinf(:,2),Iinf(:,3),'b');
