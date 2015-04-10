@@ -121,7 +121,7 @@ for tt = 1:nWins
 end
 
 % check finite size correction
-figure(1)
+figure(h1)
 plot(1./datafrac,mean(Ixy(:,:,15),2),'x');
 hold on
 idata = polyval(Iinf(15,1:2),[0 1./datafrac]);
@@ -130,7 +130,7 @@ plot([0 1./datafrac],idata,'Color',colors(ind,:));
 %%
 tShift=0;
 
-figure(2)
+figure(h2)
 h=errorbar([1:length(Iinf)]+tShift,Iinf(:,2),Iinf(:,3),'Color',colors(ind,:));
 hold on
 % h=plot([1:length(Iinf)]+tShift,Iinf(:,2),'g');

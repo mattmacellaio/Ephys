@@ -7,13 +7,9 @@ nWins = size(xdata,1);
 xdata_shuffle = xdata(randperm(size(xdata,1)),randperm(size(xdata,2)));
 ydata_shuffle = ydata(randperm(size(ydata,1)),randperm(size(ydata,2)));
 zdata_shuffle = zdata(randperm(size(zdata,1)),randperm(size(zdata,2)));
-%add zs
 
 % Bin data
 % test different values, the number you can use depends on the data sample
-nBins_x=10;
-nBins_y=10;
-nBins_z=10;
 
 [x_binned,x_cuts,x_occ] = adaptbin(reshape(xdata,1,numel(xdata)),nBins_x);
 x_binned = reshape(x_binned,nWins,size(xdata,2));
@@ -32,7 +28,7 @@ z_binned_shuffle = reshape(z_binned_shuffle,nWins,size(z_binned,2));
 
     
 datafrac=[1 .95 .90 0.85 .80 .50];
-numfracreps=5;
+numfracreps=30;
 
 ntrials = size(xdata,2);
 Sz = zeros(length(datafrac),numfracreps,nWins);%
@@ -40,8 +36,7 @@ Sz_given_xy = Sz;
 Sz_given_y=Sz;
 Ixyz = Sz;
 Sz_shuffle = Sz;
-Sz_given_x_shuffle = Sz;
-Sz_given_y_shuffle = Sz;
+Sz_given_xy_shuffle = Sz;
 Ixyz_shuffle = Sz;
 
 for datafracind=1:length(datafrac)
@@ -113,32 +108,32 @@ for datafracind=1:length(datafrac)
                 z = Zdata_r(m,n);
                 Pjoint_shuffle(m,x,y,z) = Pjoint_shuffle(m,x,y,z) + 1/size(Xdata_r,2);
             end
-            Ptemp2 = reshape(Pjoint(m,:,:,:),nBins_x,nBins_y,nBins_z);%p of response and stim
+            Ptemp2 = squeeze(Pjoint(m,:,:,:)); %p of response and stim
             Ptempz = reshape(sum(sum(Ptemp2,1),2),1,[]);%p of response, %sum=1
-            for zind=1:nBins_z
-                PtempzGxy(:,:,zind) = Ptemp2(:,:,zind)./(sum(Ptemp2,3)*ones(nBins_x,nBins_y) +eps);%normalize, sum=1*nBins
-            end
+            PtempzGxy = Ptemp2./(repmat(sum(Ptemp2,3),[1,1,nBins_z]) +eps);%normalize, sum=1*nBins
             Pxy = sum(Ptemp2,3);
             Pxy = Pxy./sum(sum(Pxy)); %sum=1
             Sz(datafracind,nrep,m) = -sum(Ptempz.*log2(Ptempz+eps));
             Sz_given_xy(datafracind,nrep,m) = sum(sum(Pxy.*sum(PtempzGxy.*log2(PtempzGxy+eps),3)));
             temp=[];
-            for zind=1:10
-                temp(:,:,zind)=Pxy(:,zind)*Ptempz;
+            for zind=1:nBins_z
+                temp(:,:,zind)=Pxy.*Ptempz(zind);
             end
             Ixyz(datafracind,nrep,m) = sum(sum(sum(Ptemp2.*log2(Ptemp2./(temp+eps) +eps))));
             
-%             Ptemp = reshape(Pjoint_shuffle(m,:,:,:),nBins_x,nBins_x);
-%             Ptempz = sum(Ptemp,1);
-%             PtempzGxy = Ptemp./(sum(Ptemp,3)*ones(nBins_x,nBins_y) +eps);
-%             Pxy = sum(Ptemp,2);
-%             Pxy = Pxy./sum(Pxy);
-%             Sy_shuffle(datafracind,nrep,m) = -sum(Ptempz.*log2(Ptempz+eps));
-%             Sy_given_x_shuffle(datafracind,nrep,m) = Pxy.*-sum(PtempzGxy.*log2(PtempzGxy+eps),2);
-%             for i=1:10
-%                 temp(:,:,zind)=Pxy(:,i)*Ptempz;
-%             end
-%             Ixy_shuffle(datafracind,nrep,m) = sum(sum(sum(Ptemp.*log2(Ptemp./(temp+eps) +eps))));
+            Ptemp2 = squeeze(Pjoint_shuffle(m,:,:,:)); %p of response and stim
+            Ptempz = reshape(sum(sum(Ptemp2,1),2),1,[]);%p of response, %sum=1
+            PtempzGxy = Ptemp2./(repmat(sum(Ptemp2,3),[1,1,nBins_z]) +eps);%normalize, sum=1*nBins
+            Pxy = sum(Ptemp2,3);
+            Pxy = Pxy./sum(sum(Pxy)); %sum=1
+            Sz(datafracind,nrep,m) = -sum(Ptempz.*log2(Ptempz+eps));
+            Sz_given_xy(datafracind,nrep,m) = sum(sum(Pxy.*sum(PtempzGxy.*log2(PtempzGxy+eps),3)));
+            temp=[];
+            for zind=1:nBins_z
+                temp(:,:,zind)=Pxy.*Ptempz(zind);
+            end
+            Ixyz_shuffle(datafracind,nrep,m) = sum(sum(sum(Ptemp2.*log2(Ptemp2./(temp+eps) +eps))));
+%            
         end; %nWins
 
      end %nrep	
@@ -148,9 +143,9 @@ for datafracind=1:length(datafrac)
         Sz_given_xy(datafracind,2:numfracreps,1:nWins)=repmat(Sz_given_xy(datafracind,1,1:nWins),1,numfracreps-1);
         Ixyz(datafracind,2:numfracreps,1:nWins)=repmat(Ixyz(datafracind,1,1:nWins),1,numfracreps-1);
         
-% 	Sy_shuffle(datafracind,2:numfracreps,1:nWins)=repmat(Sy_shuffle(datafracind,1,1:nWins),1,numfracreps-1);
-% 	Sy_given_x_shuffle(datafracind,2:numfracreps,1:nWins)=repmat(Sy_given_x_shuffle(datafracind,1,1:nWins),1,numfracreps-1);
-% 	Ixy_shuffle(datafracind,2:numfracreps,1:nWins)=repmat(Ixy_shuffle(datafracind,1,1:nWins),1,numfracreps-1);
+        Sz_shuffle(datafracind,2:numfracreps,1:nWins) =repmat(Sz_shuffle(datafracind,1,1:nWins),1,numfracreps-1);
+        Sz_given_xy_shuffle(datafracind,2:numfracreps,1:nWins)=repmat(Sz_given_xy_shuffle(datafracind,1,1:nWins),1,numfracreps-1);
+        Ixyz_shuffle(datafracind,2:numfracreps,1:nWins)=repmat(Ixyz_shuffle(datafracind,1,1:nWins),1,numfracreps-1);
      end
 end %datafrac
 
@@ -166,6 +161,13 @@ for tt = 1:nWins
     Iinf(tt,1:2) = polyfit(1./datafrac(1:nstop),mean(Ixyz(1:nstop,:,tt),2)',1);    
     Iinf(tt,3) = std(Ixyz(length(datafrac),:,tt),0,2);
     
+    Sinf_shuffle(tt,1:2) =  polyfit(1./datafrac(1:nstop),mean(Sz_shuffle(1:nstop,:,tt),2)',1);  
+    Sinf_shuffle(tt,3) = std(Sz_shuffle(length(datafrac),:,tt),0,2);
+    Snoise_inf_shuffle(tt,1:2) = polyfit(1./datafrac(1:nstop),mean(Sz_given_xy_shuffle(1:nstop,:,tt),2)',1);
+    Snoise_inf_shuffle(tt,3) = std(Sz_given_xy_shuffle(length(datafrac),:,tt),0,2);
+    Iinf_shuffle(tt,1:2) = polyfit(1./datafrac(1:nstop),mean(Ixyz_shuffle(1:nstop,:,tt),2)',1);    
+    Iinf_shuffle(tt,3) = std(Ixyz_shuffle(length(datafrac),:,tt),0,2);
+
 %     Sinf_shuffle(tt,1:2) =  polyfit(1./datafrac(1:nstop),mean(Sy_shuffle(1:nstop,:,tt),2)',1);
 %     Sinf_shuffle(tt,3) = std(Sy_shuffle(length(datafrac),:,tt),0,2);
 %     Snoise_inf_shuffle(tt,1:2) = polyfit(1./datafrac(1:nstop),mean(Sy_given_x_shuffle(1:nstop,:,tt),2)',1);
@@ -174,18 +176,20 @@ for tt = 1:nWins
 %     Iinf_shuffle(tt,3) = std(Ixy_shuffle(length(datafrac),:,tt),0,2);
     
 end
-
+tShift=0;
 % check finite size correction
-figure
+figure(h1)
 plot(1./datafrac,mean(Ixyz(:,:,15),2),'x');
 hold on
 idata = polyval(Iinf(15,1:2),[0 1./datafrac]);
 plot([0 1./datafrac],idata,'r');
 
-figure
-h=errorbar([1:length(Iinf)]+tShift,Iinf(:,2),Iinf(:,3),'b');
+figure(h2)
+errorbar([1:length(Iinf)]+tShift,Iinf(:,2),Iinf(:,3),'k');
 hold on
-h=plot([1:length(Iinf)]+tShift,Iinf(:,2),'g');
+errorbar([1:length(Iinf_shuffle)]+tShift,Iinf_shuffle(:,2),Iinf_shuffle(:,3),'Color',[0.5 0.5 0.5]);
+
+% h=plot([1:length(Iinf)]+tShift,Iinf(:,2),'g');
 xlabel('Time (ms)');
 ylabel('bits');
 
