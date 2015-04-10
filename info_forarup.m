@@ -52,37 +52,37 @@ for datafracind=1:length(datafrac)
         Xdata = x_binned(:,trialvec);
         Ydata = y_binned(:,trialvec);
         Xdata_r = x_binned_shuffle(:,trialvec);
-	Ydata_r = y_binned_shuffle(:,trialvec);
+        Ydata_r = y_binned_shuffle(:,trialvec);
 
         Pjoint = zeros(nWins,nBins,nBins);
         Pjoint_shuffle = Pjoint;
         for m=1:nWins
             for n=1:size(Xdata,2); % number of examples       
                 x = Xdata(m,n);
-	        y = Ydata(m,n);
-	        Pjoint(m,x,y) = Pjoint(m,x,y) + 1/size(Xdata,2);
-	        x = Xdata_r(m,n);
-		y = Ydata_r(m,n);
-	        Pjoint_shuffle(m,x,y) = Pjoint_shuffle(m,x,y) + 1/size(Xdata_r,2);
+                y = Ydata(m,n);
+                Pjoint(m,x,y) = Pjoint(m,x,y) + 1/size(Xdata,2);
+                x = Xdata_r(m,n);
+                y = Ydata_r(m,n);
+                Pjoint_shuffle(m,x,y) = Pjoint_shuffle(m,x,y) + 1/size(Xdata_r,2);
             end
-	    Ptemp = reshape(Pjoint(m,:,:),nBins,nBins);
-	    Ptempy = sum(Ptemp,1);
-	    PtempyGx = Ptemp./(sum(Ptemp,2)*ones(1,nBins) +eps);
+            Ptemp = reshape(Pjoint(m,:,:),nBins,nBins); %nbins x nbins %sum=1
+            Ptempy = sum(Ptemp,1); %sum=1   1 x nbins
+            PtempyGx = Ptemp./(sum(Ptemp,2)*ones(1,nBins) +eps); %sum=1*nBins
             Px = sum(Ptemp,2);
-            Px = Px./sum(Px);
-	    Sy(datafracind,nrep,m) = -sum(Ptempy.*log2(Ptempy+eps));
-	    Sy_given_x(datafracind,nrep,m) = Px'*-sum(PtempyGx.*log2(PtempyGx+eps),2);
-	    Ixy(datafracind,nrep,m) = sum(sum(Ptemp.*log2(Ptemp./(sum(Ptemp,2)*sum(Ptemp,1)+eps) +eps)));
+            Px = Px./sum(Px); %sum=1
+            Sy(datafracind,nrep,m) = -sum(Ptempy.*log2(Ptempy+eps));
+            Sy_given_x(datafracind,nrep,m) = Px'*-sum(PtempyGx.*log2(PtempyGx+eps),2);
+            Ixy(datafracind,nrep,m) = sum(sum(Ptemp.*log2(Ptemp./(Px*Ptempy+eps) +eps)));
           
 
             Ptemp = reshape(Pjoint_shuffle(m,:,:),nBins,nBins);
-	    Ptempy = sum(Ptemp,1);
+            Ptempy = sum(Ptemp,1);
             PtempyGx = Ptemp./(sum(Ptemp,2)*ones(1,nBins) +eps);
             Px = sum(Ptemp,2);
             Px = Px./sum(Px);
             Sy_shuffle(datafracind,nrep,m) = -sum(Ptempy.*log2(Ptempy+eps));
             Sy_given_x_shuffle(datafracind,nrep,m) = Px'*-sum(PtempyGx.*log2(PtempyGx+eps),2);
-	    Ixy_shuffle(datafracind,nrep,m) = sum(sum(Ptemp.*log2(Ptemp./(sum(Ptemp,2)*sum(Ptemp,1)+eps) +eps)));
+            Ixy_shuffle(datafracind,nrep,m) = sum(sum(Ptemp.*log2(Ptemp./(sum(Ptemp,2)*sum(Ptemp,1)+eps) +eps)));
 
         end; %nWins
 
@@ -121,18 +121,19 @@ for tt = 1:nWins
 end
 
 % check finite size correction
-figure
+figure(1)
 plot(1./datafrac,mean(Ixy(:,:,15),2),'x');
 hold on
 idata = polyval(Iinf(15,1:2),[0 1./datafrac]);
-plot([0 1./datafrac],idata,'r');
+plot([0 1./datafrac],idata,'Color',colors(ind,:));
+
 %%
 tShift=0;
 
-figure
-h=errorbar([1:length(Iinf)]+tShift,Iinf(:,2),Iinf(:,3),'b');
+figure(2)
+h=errorbar([1:length(Iinf)]+tShift,Iinf(:,2),Iinf(:,3),'Color',colors(ind,:));
 hold on
-h=plot([1:length(Iinf)]+tShift,Iinf(:,2),'g');
+% h=plot([1:length(Iinf)]+tShift,Iinf(:,2),'g');
 xlabel('Time (ms)');
 ylabel('bits');
 

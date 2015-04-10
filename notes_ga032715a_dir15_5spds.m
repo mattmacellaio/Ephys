@@ -13,7 +13,10 @@ experiment='ga032714a_dir15_5spds'; %yes I screwed this date up in recording
 
 first=1;
 last=1944;
-
+%primary cell: unit 2
+neuron_idx=2;
+%secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
+% neuron_idx=1;
 
 
 % %
@@ -131,10 +134,6 @@ catch
   save([savedir,'nexfile.mat'],'nexFile')
 end
 %
-%primary cell: unit 2
-neuron_idx=2;
-%secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
-% neuron_idx=1;
 
 ts=nexFile.markers{1}.timestamps;
 ev=nexFile.markers{1}.values{1}.strings;
@@ -308,7 +307,6 @@ for i=1:length(tri_num)
     end
 end
 
-%why is this not trials x 400?
 tt=400;
 spk_tp=cell(size(trialdirs,2),size(spds,2));
 %
@@ -406,230 +404,400 @@ numspds=size(spk_tp,2);
 % end
 % legend(cellstr(num2str(spds')));
 
-%% bin
+% bin
 binsize=20;
-% figure;
+% 
+
 for dir=1:numdirs
     for spd=1:numspds
-        for t=1:size(spk_tp{dir,spd},2)-binsize
-%             bint=(t-1)*binsize+1;
-            for trial=1:size(spk_tp{dir,spd},1)
-                fr_bin{dir,spd}(trial,t)=sum(spk_tp{dir,spd}(trial,t:t+binsize))*2; %/200ms*1000ms=spks/s
-            end
-        end
+%         for t=1:size(spk_tp{dir,spd},2)-binsize
+% %             bint=(t-1)*binsize+1;
+%             for trial=1:size(spk_tp{dir,spd},1)
+%                 fr_bin{dir,spd}(trial,t)=sum(spk_tp{dir,spd}(trial,t:t+binsize)); %/200ms*1000ms=spks/s
+%             end
+%         end
+      fr_cum_bin{dir,spd}=cumsum(spk_tp{dir,spd},2);  
 %     plot(mean(fr_bin{dir,spd},1));
 %     hold all
     end
 end
 
-%%
+%    finite-size corrected info
+
+%spd info
 data_x=cell(1,numdirs);
 data_y=cell(1,numdirs);
 fracs=[1 0.9 0.8 0.5];
-n_x=12;
-n_y=20;
 nreps=20;
 
 for dir=1:numdirs
     for spd=1:numspds
-        data_x{dir}=[data_x{dir};ones(size(fr_bin{dir,spd})).*spds(spd)];
-        data_y{dir}=[data_y{dir};fr_bin{dir,spd}];
+        data_x{dir}=[data_x{dir};ones(size(fr_cum_bin{dir,spd})).*spds(spd)];
+        data_y{dir}=[data_y{dir};fr_cum_bin{dir,spd}];
     end
-    xdata=data_x{dir}';
-    ydata=data_y{dir}';
-    %%wtf why this reshaping problem?
-    info_forarup
-%     [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir},data_y{dir},n_x,n_y,fracs,nreps);
 end
-%% stimulus-specific info from butts/goldman 2006 and mutual info of dir and spkct
-timebin=20;
-maxK=50;
-for t=1:tt-timebin
-    t
-    for K=1:maxK
-        clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr rcount allresps
-        i=1;
-        for dir=1:numdirs
-            for spd=1:numspds 
-                ind= sub2ind(size(spkct),dir,spd);
-                trialinds=(randperm(length(spkct{dir,spd}),floor(0.7*length(spkct{dir,spd}))));
-                spkct_bs{ind}=[];
-                for trial=trialinds;
-                    spkct_bs{ind}=[spkct_bs{ind},length(find(spk_nf{dir,spd}{trial}<=(t+timebin)))];
-                end
-                tmp(i)=max(spkct_bs{ind});
-                i=i+1;
-            end
-        end
 
-        maxr=max(tmp);
-        
-        for dir=1:numdirs
-            trialstim=cell(2,numdirs*numspds);
-            allresps=cell(1,numdirs*numspds);
-            for spd=1:numspds
-                ind=sub2ind(size(spkct),dir,spd);
-                for trial=1:length(spkct_bs{ind})
-                    trialstim{1,ind}(end+1)=trialdirs_rot(dir);
-                    trialstim{2,ind}(end+1)=spds(spd);
-                end
-                allresps{ind}=[allresps{ind},spkct_bs{ind}];    
-                pstim(ind)=length(spkct_bs{ind});
-            end
-            pstim=pstim/sum(pstim);
-            Hv=-sum(pstim.*log2(pstim));
+colors=distinguishable_colors(numdirs);
+for ind=1:numdirs
+    xdata=data_x{ind}';
+    ydata=data_y{ind}';
+    stimval=trialdirs_rot(ind);
+    info_forarup
+    %alt:calc_info_P_joint but so many problems with data_x and
+    %data_y: no 0s allowed in response? max(data) must be less than n_
+    %(number of bins)? wtf
+%     for t=1:size(data_x{dir},2)
+%         n_x=5;
+%         n_y=max(data_y{dir}(:,t));
+%         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
+%     end
+    I_spd{ind}=Iinf;
 
-            for r=1:maxr+1
-                r_inds=find(allresps{ind}==r-1);
-                rcount(r)=length(r_inds);
-%                 stims_byspkct=trialstim{ind}(r_inds);
+end
+figure(1)
+legend(cellstr(num2str(trialdirs_rot')))
+
+figure(2)
+title('I(v,r)')
+I_spd_comb=[];
+for i=1:numdirs
+    I_spd_comb=[I_spd_comb,I_spd{i}(:,2)];
+end
+I_spd_mean=mean(I_spd_comb,2);
+plot(I_spd_mean,'k')
+legend([cellstr(num2str(trialdirs_rot'));{'mean'}])
+
+saveas(2,[experiment,'_Unit ',num2str(neuron_idx),'_I_spd.fig'])
+
+close all
+%
+%dir info
+data_x=cell(1,numspds);
+data_y=cell(1,numspds);
+fracs=[1 0.9 0.8 0.5];
+nreps=20;
+
+for dir=1:numdirs
+    for spd=1:numspds
+        data_x{spd}=[data_x{spd};ones(size(fr_cum_bin{dir,spd})).*trialdirs_rot(dir)];
+        data_y{spd}=[data_y{spd};fr_cum_bin{dir,spd}];
+    end
+end
+
+colors=distinguishable_colors(numspds);
+for ind=1:numspds
+    xdata=data_x{ind}';
+    ydata=data_y{ind}';
+    stimval=spds(ind);
+    info_forarup
+    %alt:calc_info_P_joint but so many problems with data_x and
+    %data_y: no 0s allowed in response? max(data) must be less than n_
+    %(number of bins)? wtf
+%     for t=1:size(data_x{dir},2)
+%         n_x=5;
+%         n_y=max(data_y{dir}(:,t));
+%         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
+%     end
+    I_dir{ind}=Iinf;
+end
+I_dir_comb=[];
+for i=1:numspds
+    I_dir_comb=[I_dir_comb,I_dir{i}(:,2)];
+end
+I_dir_mean=mean(I_dir_comb,2);
+
+    
+
+save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir','I_spd','I_dir_mean','I_spd_mean')
+figure(1)
+legend(cellstr(num2str(spds')))
+title(['I(theta,r) at data fracs'])
+
+figure(2)
+plot(I_dir_mean,'k')
+legend([cellstr(num2str(spds'));{'mean'}])
+title('I(theta,r)')
+saveas(1,[experiment,'_Unit ',num2str(neuron_idx),'_I_dir.fig'])
+
+
+%% info for each variable combined across other variable
+
+% spd info
+data_x=[];
+data_y=[];
+fracs=[1 0.9 0.8 0.5];
+nreps=20;
+
+for dir=1:numdirs
+    for spd=1:numspds
+        data_x=[data_x;ones(size(fr_cum_bin{dir,spd})).*spds(spd)];
+        data_y=[data_y;fr_cum_bin{dir,spd}];
+    end
+end
+
+ind=1;
+colors=distinguishable_colors(numdirs);
+xdata=data_x';
+ydata=data_y';
+info_forarup
+I_spd=Iinf;
+
+figure(2)
+title('I(v,r), all directions')
+hold all;
+load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_spd_mean')
+plot(I_spd_mean,'k')
+legend('all directions','average')
+
+saveas(2,[experiment,'_Unit ',num2str(neuron_idx),'_I_spd(alldirs).fig'])
+close all
+
+%
+%dir info
+data_x=[];
+data_y=[];
+fracs=[1 0.9 0.8 0.5];
+nreps=20;
+
+for dir=1:numdirs
+    for spd=1:numspds
+        data_x=[data_x;ones(size(fr_cum_bin{dir,spd})).*trialdirs_rot(dir)];
+        data_y=[data_y;fr_cum_bin{dir,spd}];
+    end
+end
+
+colors=distinguishable_colors(numspds);
+ind=1;
+xdata=data_x';
+ydata=data_y';
+info_forarup
+I_dir=Iinf;
+
+save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_combined.mat'],'I_dir','I_spd')
+
+figure(2)
+title('I(theta,r), all speeds')
+hold all;
+load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir_mean')
+plot(I_dir_mean,'k')
+legend('all speeds','average')
+
+
+saveas(2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dir(allspds).fig'])
+
+%% info for joint dir-spd distribution
+
+data_x=[];
+data_y=[];
+data_z=[];
+fracs=[1 0.9 0.8 0.5];
+nreps=20;
+
+for dir=1:numdirs
+    for spd=1:numspds
+        data_x=[data_x;ones(size(fr_cum_bin{dir,spd})).*trialdirs_rot(dir)];
+        data_y=[data_y;ones(size(fr_cum_bin{dir,spd})).*spds(spd)];
+        data_z=[data_z;fr_cum_bin{dir,spd}];
+    end
+end
+
+ind=1;
+colors=distinguishable_colors(numdirs);
+xdata=data_x';
+ydata=data_y';
+zdata=data_z';
+
+info_forarup2d
+
+% %% stimulus-specific info from butts/goldman 2006 and mutual info of dir and spkct
+% timebin=20;
+% maxK=50;
+% for t=1:tt-timebin
+%     t
+%     for K=1:maxK
+%         clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr rcount allresps
+%         i=1;
+%         for dir=1:numdirs
+%             for spd=1:numspds 
+%                 ind= sub2ind(size(spkct),dir,spd);
+%                 trialinds=(randperm(length(spkct{dir,spd}),floor(0.7*length(spkct{dir,spd}))));
+%                 spkct_bs{ind}=[];
+%                 for trial=trialinds;
+%                     spkct_bs{ind}=[spkct_bs{ind},length(find(spk_nf{dir,spd}{trial}<=(t+timebin)))];
+%                 end
+%                 tmp(i)=max(spkct_bs{ind});
+%                 i=i+1;
+%             end
+%         end
+% 
+%         maxr=max(tmp);
+%         
+%         for dir=1:numdirs
+%             trialstim=cell(2,numdirs*numspds);
+%             allresps=cell(1,numdirs*numspds);
+%             for spd=1:numspds
+%                 ind=sub2ind(size(spkct),dir,spd);
+%                 for trial=1:length(spkct_bs{ind})
+%                     trialstim{1,ind}(end+1)=trialdirs_rot(dir);
+%                     trialstim{2,ind}(end+1)=spds(spd);
+%                 end
+%                 allresps{ind}=[allresps{ind},spkct_bs{ind}];    
+%                 pstim(ind)=length(spkct_bs{ind});
+%             end
+%             pstim=pstim/sum(pstim);
+%             Hv=-sum(pstim.*log2(pstim));
+% 
+%             for r=1:maxr+1
+%                 r_inds=find(allresps{ind}==r-1);
+%                 rcount(r)=length(r_inds);
+% %                 stims_byspkct=trialstim{ind}(r_inds);
+% %                 pvr(dir,r,:)=hist(spds_byspkct,spds)/(eps+length(spds_byspkct));
+% %                 Hvr(dir,r)=-nansum(pvr(dir,r,:).*log2(pvr(dir,r,:)));
+% %                 isp(dir,r)=Hv-Hvr(spd,r);
+%             end
+%             pr(ind,:)=rcount./sum(rcount);
+%         end
+%         for dir=1:numdirs
+%             ptn=0;
+%             for spd=1:numspds
+%             end
+%             for spd=1:numspds
+%                 ind= sub2ind(size(spkct),dir,spd);
+%                 spdinds=find(trialstim{2,ind}==spds(spd));
+%                 dirinds=find(trialstim{1,ind}==trialdirs_rot(dir));
+%                 stiminds=intersect(spdinds,dirinds);
+%                 r_bystim=allresps{ind}(stiminds);
+%                 prstim(ind,:)=hist(r_bystim,0:maxr)/(eps+length(r_bystim));
+%     %             issi(spd,dir)=nansum(prtheta(spd,:,dir).*isp(spd,:));
+%                 ptn=ptn+pstim(ind).*prstim(ind,:);
+%             end
+%             for spd=1:numspds    
+%                 ind= sub2ind(size(spkct),dir,spd);                
+%                 info(ind)=pstim(ind)*nansum(prstim(ind,:).*log2(prstim(ind,:)./(eps+ptn)));
+%     %             eff(spd,dir)=(-nansum(pr(spd,:).*log2(pr(spd,:)))-(-nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)))))...
+%     %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
+%             end
+%         end
+%         mutinfo_stim(t,K)=sum(info,1);
+%         eff_stim(t,K)=squeeze(mutinfo_spd(t,K))./(-nansum(pr.*log2(pr),2));
+%         
+%         clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr isp rcount allresps
+%         i=1;
+%         for dir=1:numdirs
+%             for spd=1:numspds 
+%                 trialinds=(randperm(length(spkct{dir,spd}),floor(0.7*length(spkct{dir,spd}))));
+%                 spkct_bs{dir,spd}=[];
+%                 for trial=trialinds;
+%                     spkct_bs{dir,spd}=[spkct_bs{dir,spd},length(find(spk_nf{dir,spd}{trial}<=(t+timebin)))];
+%                 end
+%                 tmp(i)=max(spkct_bs{dir,spd});
+%                 i=i+1;
+%             end
+%         end
+% 
+%         maxr=max(tmp);
+% 
+%         for spd=1:numspds
+%             trialdir{spd}=[];
+%             allresps{spd}=[];
+%             for dir=1:numdirs
+%                 for trial=1:length(spkct_bs{dir,spd})
+%                     trialdir{spd}(end+1)=trialdirs_rot(dir);
+%                 end
+%                 allresps{spd}=[allresps{spd},spkct_bs{dir,spd}];    
+%                 ptheta(dir)=length(spkct_bs{dir,spd});
+%             end
+%             ptheta=ptheta/sum(ptheta);
+%             Htheta=-sum(ptheta.*log2(ptheta));
+% 
+%             for r=1:maxr+1
+%                 r_inds=find(allresps{spd}==r-1);
+%                 rcount(r)=length(r_inds);
+%                 dirs_byspkct=trialdir{spd}(r_inds);
+%                 pthetar(spd,r,:)=hist(dirs_byspkct,trialdirs_rot)/(eps+length(dirs_byspkct));
+%                 Hthetar(spd,r)=-nansum(pthetar(spd,r,:).*log2(pthetar(spd,r,:)));
+% %                 isp(spd,r)=Htheta-Hthetar(spd,r);
+%             end
+%             pr(spd,:)=rcount./sum(rcount);
+%         end
+%         for spd=1:numspds
+%             ptn=0;
+%             for dir=1:numdirs
+%                 dirinds=find(trialdir{spd}==trialdirs_rot(dir));
+%                 r_bydir=allresps{spd}(dirinds);
+%                 prtheta(spd,:,dir)=hist(r_bydir,0:maxr)/(eps+length(r_bydir));
+%                 ptn=ptn+ptheta(dir).*prtheta(spd,:,dir);
+%     %             issi(spd,dir)=nansum(prtheta(spd,:,dir).*isp(spd,:));
+%             end
+%             for dir=1:numdirs
+%                 info(spd,dir)=ptheta(dir)*nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)./(eps+ptn)));
+%     %             eff(spd,dir)=(-nansum(pr(spd,:).*log2(pr(spd,:)))-(-nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)))))...
+%     %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
+%             end
+%         end
+%         mutinfo_dir(t,K,:)=sum(info,2);
+%         eff_dir(t,K,:)=squeeze(mutinfo_dir(t,K,:))./(-nansum(pr.*log2(pr),2));
+% 
+%         clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr rcount allresps
+%         i=1;
+%         for dir=1:numdirs
+%             for spd=1:numspds 
+%                 trialinds=(randperm(length(spkct{dir,spd}),floor(0.7*length(spkct{dir,spd}))));
+%                 spkct_bs{dir,spd}=[];
+%                 for trial=trialinds;
+%                     spkct_bs{dir,spd}=[spkct_bs{dir,spd},length(find(spk_nf{dir,spd}{trial}<=(t+timebin)))];
+%                 end
+%                 tmp(i)=max(spkct_bs{dir,spd});
+%                 i=i+1;
+%             end
+%         end
+% 
+%         maxr=max(tmp);
+%         
+%         for dir=1:numdirs
+%             trialspd{dir}=[];
+%             allresps{dir}=[];
+%             for spd=1:numspds
+%                 for trial=1:length(spkct_bs{dir,spd})
+%                     trialspd{dir}(end+1)=spds(spd);
+%                 end
+%                 allresps{dir}=[allresps{dir},spkct_bs{dir,spd}];    
+%                 pv(spd)=length(spkct_bs{dir,spd});
+%             end
+%             pv=pv/sum(pv);
+%             Hv=-sum(pv.*log2(pv));
+% 
+%             for r=1:maxr+1
+%                 r_inds=find(allresps{dir}==r-1);
+%                 rcount(r)=length(r_inds);
+%                 spds_byspkct=trialspd{dir}(r_inds);
 %                 pvr(dir,r,:)=hist(spds_byspkct,spds)/(eps+length(spds_byspkct));
 %                 Hvr(dir,r)=-nansum(pvr(dir,r,:).*log2(pvr(dir,r,:)));
-%                 isp(dir,r)=Hv-Hvr(spd,r);
-            end
-            pr(ind,:)=rcount./sum(rcount);
-        end
-        for dir=1:numdirs
-            ptn=0;
-            for spd=1:numspds
-            end
-            for spd=1:numspds
-                ind= sub2ind(size(spkct),dir,spd);
-                spdinds=find(trialstim{2,ind}==spds(spd));
-                dirinds=find(trialstim{1,ind}==trialdirs_rot(dir));
-                stiminds=intersect(spdinds,dirinds);
-                r_bystim=allresps{ind}(stiminds);
-                prstim(ind,:)=hist(r_bystim,0:maxr)/(eps+length(r_bystim));
-    %             issi(spd,dir)=nansum(prtheta(spd,:,dir).*isp(spd,:));
-                ptn=ptn+pstim(ind).*prstim(ind,:);
-            end
-            for spd=1:numspds    
-                ind= sub2ind(size(spkct),dir,spd);                
-                info(ind)=pstim(ind)*nansum(prstim(ind,:).*log2(prstim(ind,:)./(eps+ptn)));
-    %             eff(spd,dir)=(-nansum(pr(spd,:).*log2(pr(spd,:)))-(-nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)))))...
-    %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
-            end
-        end
-        mutinfo_stim(t,K)=sum(info,1);
-        eff_stim(t,K)=squeeze(mutinfo_spd(t,K))./(-nansum(pr.*log2(pr),2));
-        
-        clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr isp rcount allresps
-        i=1;
-        for dir=1:numdirs
-            for spd=1:numspds 
-                trialinds=(randperm(length(spkct{dir,spd}),floor(0.7*length(spkct{dir,spd}))));
-                spkct_bs{dir,spd}=[];
-                for trial=trialinds;
-                    spkct_bs{dir,spd}=[spkct_bs{dir,spd},length(find(spk_nf{dir,spd}{trial}<=(t+timebin)))];
-                end
-                tmp(i)=max(spkct_bs{dir,spd});
-                i=i+1;
-            end
-        end
-
-        maxr=max(tmp);
-
-        for spd=1:numspds
-            trialdir{spd}=[];
-            allresps{spd}=[];
-            for dir=1:numdirs
-                for trial=1:length(spkct_bs{dir,spd})
-                    trialdir{spd}(end+1)=trialdirs_rot(dir);
-                end
-                allresps{spd}=[allresps{spd},spkct_bs{dir,spd}];    
-                ptheta(dir)=length(spkct_bs{dir,spd});
-            end
-            ptheta=ptheta/sum(ptheta);
-            Htheta=-sum(ptheta.*log2(ptheta));
-
-            for r=1:maxr+1
-                r_inds=find(allresps{spd}==r-1);
-                rcount(r)=length(r_inds);
-                dirs_byspkct=trialdir{spd}(r_inds);
-                pthetar(spd,r,:)=hist(dirs_byspkct,trialdirs_rot)/(eps+length(dirs_byspkct));
-                Hthetar(spd,r)=-nansum(pthetar(spd,r,:).*log2(pthetar(spd,r,:)));
-%                 isp(spd,r)=Htheta-Hthetar(spd,r);
-            end
-            pr(spd,:)=rcount./sum(rcount);
-        end
-        for spd=1:numspds
-            ptn=0;
-            for dir=1:numdirs
-                dirinds=find(trialdir{spd}==trialdirs_rot(dir));
-                r_bydir=allresps{spd}(dirinds);
-                prtheta(spd,:,dir)=hist(r_bydir,0:maxr)/(eps+length(r_bydir));
-                ptn=ptn+ptheta(dir).*prtheta(spd,:,dir);
-    %             issi(spd,dir)=nansum(prtheta(spd,:,dir).*isp(spd,:));
-            end
-            for dir=1:numdirs
-                info(spd,dir)=ptheta(dir)*nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)./(eps+ptn)));
-    %             eff(spd,dir)=(-nansum(pr(spd,:).*log2(pr(spd,:)))-(-nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)))))...
-    %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
-            end
-        end
-        mutinfo_dir(t,K,:)=sum(info,2);
-        eff_dir(t,K,:)=squeeze(mutinfo_dir(t,K,:))./(-nansum(pr.*log2(pr),2));
-
-        clear pr pthetar pvr Hvr prv pv Hthetar prtheta ptheta tmp maxr rcount allresps
-        i=1;
-        for dir=1:numdirs
-            for spd=1:numspds 
-                trialinds=(randperm(length(spkct{dir,spd}),floor(0.7*length(spkct{dir,spd}))));
-                spkct_bs{dir,spd}=[];
-                for trial=trialinds;
-                    spkct_bs{dir,spd}=[spkct_bs{dir,spd},length(find(spk_nf{dir,spd}{trial}<=(t+timebin)))];
-                end
-                tmp(i)=max(spkct_bs{dir,spd});
-                i=i+1;
-            end
-        end
-
-        maxr=max(tmp);
-        
-        for dir=1:numdirs
-            trialspd{dir}=[];
-            allresps{dir}=[];
-            for spd=1:numspds
-                for trial=1:length(spkct_bs{dir,spd})
-                    trialspd{dir}(end+1)=spds(spd);
-                end
-                allresps{dir}=[allresps{dir},spkct_bs{dir,spd}];    
-                pv(spd)=length(spkct_bs{dir,spd});
-            end
-            pv=pv/sum(pv);
-            Hv=-sum(pv.*log2(pv));
-
-            for r=1:maxr+1
-                r_inds=find(allresps{dir}==r-1);
-                rcount(r)=length(r_inds);
-                spds_byspkct=trialspd{dir}(r_inds);
-                pvr(dir,r,:)=hist(spds_byspkct,spds)/(eps+length(spds_byspkct));
-                Hvr(dir,r)=-nansum(pvr(dir,r,:).*log2(pvr(dir,r,:)));
-%                 isp(dir,r)=Hv-Hvr(spd,r);
-            end
-            pr(dir,:)=rcount./sum(rcount);
-        end
-        for dir=1:numdirs
-            ptn=0;
-            for spd=1:numspds
-            end
-            for spd=1:numspds
-                spdinds=find(trialspd{dir}==spds(spd));
-                r_byspd=allresps{dir}(spdinds);
-                prv(dir,:,spd)=hist(r_byspd,0:maxr)/(eps+length(r_byspd));
-    %             issi(spd,dir)=nansum(prtheta(spd,:,dir).*isp(spd,:));
-                ptn=ptn+pv(spd).*prv(dir,:,spd);
-            end
-            for spd=1:numspds            
-                info(spd,dir)=pv(spd)*nansum(prv(dir,:,spd).*log2(prv(dir,:,spd)./(eps+ptn)));
-    %             eff(spd,dir)=(-nansum(pr(spd,:).*log2(pr(spd,:)))-(-nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)))))...
-    %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
-            end
-        end
-        mutinfo_spd(t,K,:)=sum(info,1);
-        eff_spd(t,K,:)=squeeze(mutinfo_spd(t,K,:))./(-nansum(pr.*log2(pr),2));
-    end
-end
+% %                 isp(dir,r)=Hv-Hvr(spd,r);
+%             end
+%             pr(dir,:)=rcount./sum(rcount);
+%         end
+%         for dir=1:numdirs
+%             ptn=0;
+%             for spd=1:numspds
+%             end
+%             for spd=1:numspds
+%                 spdinds=find(trialspd{dir}==spds(spd));
+%                 r_byspd=allresps{dir}(spdinds);
+%                 prv(dir,:,spd)=hist(r_byspd,0:maxr)/(eps+length(r_byspd));
+%     %             issi(spd,dir)=nansum(prtheta(spd,:,dir).*isp(spd,:));
+%                 ptn=ptn+pv(spd).*prv(dir,:,spd);
+%             end
+%             for spd=1:numspds            
+%                 info(spd,dir)=pv(spd)*nansum(prv(dir,:,spd).*log2(prv(dir,:,spd)./(eps+ptn)));
+%     %             eff(spd,dir)=(-nansum(pr(spd,:).*log2(pr(spd,:)))-(-nansum(prtheta(spd,:,dir).*log2(prtheta(spd,:,dir)))))...
+%     %                 /(-nansum(pr(spd,:).*log2(pr(spd,:))));
+%             end
+%         end
+%         mutinfo_spd(t,K,:)=sum(info,1);
+%         eff_spd(t,K,:)=squeeze(mutinfo_spd(t,K,:))./(-nansum(pr.*log2(pr),2));
+%     end
+% end
 
 %
 % figure;subplot 211;hold all
