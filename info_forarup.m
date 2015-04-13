@@ -7,18 +7,16 @@ nWins = size(xdata,1);
 xdata_shuffle = xdata(randperm(size(xdata,1)),randperm(size(xdata,2)));
 ydata_shuffle = ydata(randperm(size(ydata,1)),randperm(size(ydata,2)));
 
-
 % Bin data
 % test different values, the number you can use depends on the data sample
-nBins=10;
-[x_binned,x_cuts,x_occ] = adaptbin(reshape(xdata,1,numel(xdata)),nBins);
+[x_binned,x_cuts,x_occ] = adaptbin(reshape(xdata,1,numel(xdata)),nBins_x);
 x_binned = reshape(x_binned,nWins,size(xdata,2));
-[y_binned,y_cuts,y_occ] = adaptbin(reshape(ydata,1,numel(ydata)),nBins);
+[y_binned,y_cuts,y_occ] = adaptbin(reshape(ydata,1,numel(ydata)),nBins_y);
 y_binned = reshape(y_binned,nWins,size(ydata,2));
 
-[x_binned_shuffle,x_cuts_shuffle,x_occ_shuffle] = adaptbin(reshape(xdata_shuffle,1,numel(xdata)),nBins);
+[x_binned_shuffle,x_cuts_shuffle,x_occ_shuffle] = adaptbin(reshape(xdata_shuffle,1,numel(xdata)),nBins_x);
 x_binned_shuffle = reshape(x_binned_shuffle,nWins,size(x_binned,2));
-[y_binned_shuffle,y_cuts_shuffle,y_occ_shuffle] = adaptbin(reshape(ydata_shuffle,1,numel(ydata)),nBins);
+[y_binned_shuffle,y_cuts_shuffle,y_occ_shuffle] = adaptbin(reshape(ydata_shuffle,1,numel(ydata)),nBins_y);
 y_binned_shuffle = reshape(y_binned_shuffle,nWins,size(y_binned,2));
 
     
@@ -54,7 +52,7 @@ for datafracind=1:length(datafrac)
         Xdata_r = x_binned_shuffle(:,trialvec);
         Ydata_r = y_binned_shuffle(:,trialvec);
 
-        Pjoint = zeros(nWins,nBins,nBins);
+        Pjoint = zeros(nWins,nBins_x,nBins_y);
         Pjoint_shuffle = Pjoint;
         for m=1:nWins
             for n=1:size(Xdata,2); % number of examples       
@@ -65,9 +63,9 @@ for datafracind=1:length(datafrac)
                 y = Ydata_r(m,n);
                 Pjoint_shuffle(m,x,y) = Pjoint_shuffle(m,x,y) + 1/size(Xdata_r,2);
             end
-            Ptemp = reshape(Pjoint(m,:,:),nBins,nBins); %nbins x nbins %sum=1
+            Ptemp = reshape(Pjoint(m,:,:),nBins_x,nBins_y); %nbins x nbins %sum=1
             Ptempy = sum(Ptemp,1); %sum=1   1 x nbins
-            PtempyGx = Ptemp./(sum(Ptemp,2)*ones(1,nBins) +eps); %sum=1*nBins
+            PtempyGx = Ptemp./(repmat(sum(Ptemp,2),[1,nBins_y]) +eps); %sum=1*nBins
             Px = sum(Ptemp,2);
             Px = Px./sum(Px); %sum=1
             Sy(datafracind,nrep,m) = -sum(Ptempy.*log2(Ptempy+eps));
@@ -75,9 +73,9 @@ for datafracind=1:length(datafrac)
             Ixy(datafracind,nrep,m) = sum(sum(Ptemp.*log2(Ptemp./(Px*Ptempy+eps) +eps)));
           
 
-            Ptemp = reshape(Pjoint_shuffle(m,:,:),nBins,nBins);
+            Ptemp = reshape(Pjoint_shuffle(m,:,:),nBins_x,nBins_y);
             Ptempy = sum(Ptemp,1);
-            PtempyGx = Ptemp./(sum(Ptemp,2)*ones(1,nBins) +eps);
+            PtempyGx = Ptemp./(repmat(sum(Ptemp,2),[1,nBins_y]) +eps); %sum=1*nBins
             Px = sum(Ptemp,2);
             Px = Px./sum(Px);
             Sy_shuffle(datafracind,nrep,m) = -sum(Ptempy.*log2(Ptempy+eps));

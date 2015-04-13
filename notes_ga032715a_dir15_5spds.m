@@ -14,7 +14,7 @@ experiment='ga032714a_dir15_5spds'; %yes I screwed this date up in recording
 first=1;
 last=1944;
 %primary cell: unit 2
-neuron_idx=1;
+neuron_idx=2;
 %secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
 % neuron_idx=1;
 
@@ -399,14 +399,24 @@ end
 
 figure;hold all
 for i=1:5
-    plot(trialdirs_rot,spk_ct_mean(:,i)./max(max(spk_ct_mean)))
+    plot(trialdirs_rot,spk_ct_mean(:,i))%./max(max(spk_ct_mean)))
 end
 legend(cellstr(num2str(spds')));
+title([experiment,' unit',num2str(neuron_idx),'Direction Tuning'])
+saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_dirtune.fig'])
+%
+colors=distinguishable_colors(numdirs);
+figure;
+for i=1:12
+    semilogx(spds,squeeze(spk_ct_mean(i,:)),'Color',colors(i,:));hold all %./max(max(spk_ct_mean))
+end
+set(gca,'XTick',[2 4 8 16 32 64],'XTickLabel',[2 4 8 16 32 64])
+legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside')
+saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_spdtune.fig'])
 
 % bin
 binsize=20;
 % 
-
 for dir=1:numdirs
     for spd=1:numspds
 %         for t=1:size(spk_tp{dir,spd},2)-binsize
@@ -421,13 +431,14 @@ for dir=1:numdirs
     end
 end
 
-%%    finite-size corrected info
+%%  finite-size corrected info
 
 %spd info
 data_x=cell(1,numdirs);
 data_y=cell(1,numdirs);
 fracs=[1 0.9 0.8 0.5];
 nreps=20;
+colors=distinguishable_colors(numdirs);
 
 for dir=1:numdirs
     for spd=1:numspds
@@ -437,7 +448,8 @@ for dir=1:numdirs
 end
 h1=figure;
 h2=figure;
-colors=distinguishable_colors(numdirs);
+nBins_x=5;
+nBins_y=10;
 for ind=1:numdirs
     xdata=data_x{ind}';
     ydata=data_y{ind}';
@@ -493,8 +505,8 @@ for dir=1:numdirs
 end
 h1=figure;
 h2=figure;
-colors=distinguishable_colors(numspds);
-%
+nBins_x=12;
+nBins_y=10;
 for ind=1:numspds
     xdata=data_x{ind}';
     ydata=data_y{ind}';
@@ -542,6 +554,8 @@ data_x=[];
 data_y=[];
 fracs=[1 0.9 0.8 0.5];
 nreps=20;
+nBins_x=5;
+nBins_y=10;
 
 for dir=1:numdirs
     for spd=1:numspds
@@ -551,7 +565,7 @@ for dir=1:numdirs
 end
 
 ind=1;
-
+%% here
 h1=figure;
 h2=figure;
 colors=distinguishable_colors(numdirs);
@@ -576,6 +590,8 @@ data_x=[];
 data_y=[];
 fracs=[1 0.9 0.8 0.5];
 nreps=20;
+nBins_x=12;
+nBins_y=10;
 
 for dir=1:numdirs
     for spd=1:numspds
@@ -604,6 +620,39 @@ legend('all speeds','average')
 
 saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dir(allspds).fig'])
 
+% info for 1-dimensiona;joint dir-spd distribution
+
+data_x=[];
+data_y=[];
+fracs=[1 0.9 0.8 0.5];
+nreps=20;
+
+for dir=1:numdirs
+    for spd=1:numspds
+        triind=sub2ind([numdirs,numspds],dir,spd);       
+        data_x=[data_x;ones(size(fr_cum_bin{dir,spd})).*triind];
+        data_y=[data_y;fr_cum_bin{dir,spd}];
+    end
+end
+% h1=figure;
+% h2=figure;
+% ind=1;
+% colors=distinguishable_colors(numdirs);
+xdata=data_x';
+ydata=data_y';
+
+nBins_x=60;
+nBins_y=10;
+
+%
+h1=figure;
+h2=figure;
+info_forarup
+I_dirspd_joint_1d=Iinf;
+I_dirspd_joint_1d_shuffle=Iinf_shuffle;
+
+errorbar([1:length(I_dirspd_joint_1d_shuffle)]+tShift,I_dirspd_joint_1d_shuffle(:,2),I_dirspd_joint_1d_shuffle(:,3),'Color',[0.5 0.5 0.5]);
+title('Mutual info of 1-dimensional stimulus and response')
 %% info for joint dir-spd distribution
 
 data_x=[];
@@ -639,6 +688,7 @@ info_forarup2d
 I_dirspd_joint=Iinf;
 I_dirspd_joint_shuffle=Iinf_shuffle;
 
+%
 
 save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_dirspd_joint.mat'],'I_dirspd_joint','I_dirspd_joint_shuffle')
 
