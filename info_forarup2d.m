@@ -179,9 +179,10 @@ end
 tShift=0;
 % check finite size correction
 figure(h1)
-plot(1./datafrac,mean(Ixyz(:,:,15),2),'x');
+samptime=100;
+plot(1./datafrac,mean(Ixyz(:,:,samptime),2),'x');
 hold on
-idata = polyval(Iinf(15,1:2),[0 1./datafrac]);
+idata = polyval(Iinf(samptime,1:2),[0 1./datafrac]);
 plot([0 1./datafrac],idata,'r');
 
 figure(h2)

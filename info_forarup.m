@@ -120,9 +120,10 @@ end
 
 % check finite size correction
 figure(h1)
-plot(1./datafrac,mean(Ixy(:,:,15),2),'x');
+samptime=100;
+plot(1./datafrac,mean(Ixy(:,:,samptime),2),'x');
 hold on
-idata = polyval(Iinf(15,1:2),[0 1./datafrac]);
+idata = polyval(Iinf(samptime,1:2),[0 1./datafrac]);
 plot([0 1./datafrac],idata,'Color',colors(ind,:));
 
 %%
@@ -131,6 +132,7 @@ tShift=0;
 figure(h2)
 h=errorbar([1:length(Iinf)]+tShift,Iinf(:,2),Iinf(:,3),'Color',colors(ind,:));
 hold on
+errorbar([1:length(Iinf)]+tShift,Iinf_shuffle(:,2),Iinf_shuffle(:,3),'Color',colors(ind,:));
 % h=plot([1:length(Iinf)]+tShift,Iinf(:,2),'g');
 xlabel('Time (ms)');
 ylabel('bits');
