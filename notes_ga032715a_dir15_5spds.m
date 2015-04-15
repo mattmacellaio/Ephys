@@ -264,7 +264,7 @@ end
 %get mean nstimdir and mean nstimspd to check
 %primary cell: unit 2
 
-for neuron_idx=2:2
+ neuron_idx=2;
 %secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
 % neuron_idx=1;
 
@@ -397,6 +397,7 @@ for dir=1:numdirs
     end
 end
 
+experiment='ga032715a_dir15_5spds'; %changed from above for sanity's sake later
 
 figure;hold all
 for i=1:5
@@ -433,7 +434,7 @@ for dir=1:numdirs
     end
 end
 %
-kind=2;
+kind=3;
 
 if kind==1
     response=cumct_bin;
@@ -446,7 +447,7 @@ elseif kind==3
     tag=' from ISI';
 end
     
-%  finite-size corrected info
+%%  finite-size corrected info
 
 %use spd info to find optimal nBins_y
 
@@ -794,7 +795,7 @@ saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint separated.fig
 
 % 
 elseif kind==3
-% if using ISI
+%% if using ISI
     
     %use spd info to find optimal nBins_y
 
@@ -805,25 +806,26 @@ nreps=20;
 
 for dir=1:numdirs
     for spd=1:numspds
-        data_x{dir}=[data_x{dir},ones(size(response{dir,spd})).*spds(spd)];
+        data_x{dir}=[data_x{dir};ones(size(response{dir,spd})).*spds(spd)];
         for trial=1:size(response{dir,spd})
-            data_y{dir}=[data_y{dir},response{dir,spd}{trial}];
+            data_y{dir}=[data_y{dir};{response{dir,spd}{trial}}];
         end
     end
 end
-h1=figure;
-h2=figure;
+%
+% h1=figure;
+% h2=figure;
 nBins_x=5;
 %
-bn=200:20:400
-colors=distinguishable_colors(length(bn));
-for ind=1:length(bn)
+% bn=200:20:400
+% colors=distinguishable_colors(length(bn));
+% for ind=1:length(bn)
     for dir=6 
         xdata=data_x{dir}';
         ydata=data_y{dir}';
         stimval=trialdirs_rot(dir);
-        nBins_y=bn(ind);
-        info_forarup
+%         nBins_y=bn(ind);
+        info_isi
         %alt:calc_info_P_joint but so many problems with data_x and
         %data_y: no 0s allowed in response? max(data) must be less than n_
         %(number of bins)? wtf
@@ -835,8 +837,7 @@ for ind=1:length(bn)
         I_spd{dir}=Iinf;
 
     end
-end
-%
+%%
 % spd info
 data_x=cell(1,numdirs);
 data_y=cell(1,numdirs);
