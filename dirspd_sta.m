@@ -205,8 +205,11 @@ for i=1:numtriTypes
     figure(3);subplot 212
     plot(lags,sta_spd(:,i),'Color',colors(i,:),'LineWidth',2);hold all
     
+    
 end
-
+figure;
+imagesc(cov([sta_dir(1:200,:);sta_spd(1:200,:)]'));colorbar
+title('Covariance')
 
 figure(1)
 suptitle('direction STA over time')
