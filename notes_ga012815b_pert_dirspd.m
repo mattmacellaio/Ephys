@@ -1,0 +1,377 @@
+
+
+
+% clear all;
+
+if ispc
+    rt='Z:/';
+else
+    rt='/Volumes/Hub/';
+end
+path(path,[rt,'MT/MATLAB/bing_ana']);
+path(path,[rt,'/MattM/Code/population decoding'])
+path(path,[rt,'RMVideo_backup']);
+
+trialsdir=[rt,'MT/Data/ga012815/maestro'];
+savedir=[rt,'MT/Data/ga012815/mat/'];
+experiment='ga012815b_pert_dirspd';
+first=1;
+last=2205;
+
+%prefdir =45, recorded +45=90deg
+%recorded 16dps
+seg_dur=300;  % important if we change the length of the stimulus.
+tdur=2*seg_dur;
+
+neuron_idx=2;
+
+%%
+
+try
+    load([savedir,'data.mat'])
+catch
+    [data] = load_maestrospks(trialsdir,experiment,first,last);
+    save([savedir,'data.mat'],'data')
+end
+
+seg_dur=300;  % important if we change the length of the stimulus.
+tdur=2*seg_dur;
+nTypes = size(data,1);
+nTags = 1;            % we should have 4 tags
+nSegs = 0;
+nstimdir=[];
+stdpdir = []; 
+spikearray=[]; 
+spiketimes = cell(nTypes*nTags,1);
+nSegs=0;
+%%
+for i=1:nTypes
+    temp = data(i,1);
+    temp= [temp.targ.patdir];
+    nReps = size(temp,2);
+    nSegs = nSegs + nTags*nReps;
+end 
+celltimes = cell(nSegs,1);
+
+segdata.nSpks = zeros(nTypes,nTags,nReps);
+segdata.target = zeros(tdur,nTypes,nTags,nReps);
+segdata.bspks = segdata.target;
+segdata.spiketimes = zeros(200,nTypes,nTags,nReps); % 200 is bigger than the max spikes num
+segdata.nfiles = zeros(1,nTypes);
+tagval=[]; %tagvals identifies the trial condition for all segments within trials (so nTypes*nSegs*nReps long);
+count=0;
+for i=1:nTypes
+        clear ptemp stemp;
+        temp = data(i,1);
+        tempdir = [temp.targ.patdir];
+        temph=[temp.targ.hpatvel];
+        tempv=[temp.targ.vpatvel];
+        nReps = size(tempdir,2);
+        tempspd=[data(i,1).targ.patspeed];
+        stemp = data(i,1);
+        stemp = stemp.spks; 
+        for k= 1:nTags
+%                 minT = cell2mat(data(i).tagStart(k));
+%                 maxT = cell2mat(data(i).tagEnd(k));
+%                 minT=data(i).tagStart(k);
+%                 minT=minT{1};
+%                 maxT=data(i).tagEnd(k);
+%                 maxT=maxT{1};
+            minT=401;
+            maxT=tdur+minT-1;
+
+            %prefDir = [data(1).targ.predir]; % direction that has been added to target motion
+            %prefDir = prefDir(1);
+            ptempdir = tempdir(minT:maxT,1:nReps)';
+            pdirarray = zeros(nReps,size(ptempdir,2));
+            npdirarray = pdirarray;
+            ptempspd = tempspd(minT:maxT,1:nReps)';
+            pspdarray = zeros(nReps,size(ptempspd,2));
+            npspdarray = pspdarray;
+            
+            bspks = pdirarray;
+            %bspks = zeros(nReps,length(minT:maxT));
+            stimes=[];
+            for j=1:nReps
+%                 if i<=12
+%                     pdirarray(j,:)=ptemp(j,:);
+%                 else
+%                     pdirarray(j,:) = mod(unwrap(ptemp(j,:)*pi/180)*180/pi,360);
+%                 end 
+%                pdirarray(j,:) = mod(unwrap(ptemp(j,:)*pi/180)*180/pi,360);
+                pdirarray(j,:)=ptempdir(j,:);
+%                npdirarray(j,:) = pdirarray(j,k,:) - prefDir; 
+                npdirarray(j,:) = pdirarray(j,:) - repmat(mean(pdirarray(j,:)),1,size(ptempdir,2)); 
+                pspdarray(j,:)=ptempspd(j,:);
+%                npdirarray(j,:) = pdirarray(j,k,:) - prefDir; 
+                npspdarray(j,:) = pspdarray(j,:) - repmat(mean(pspdarray(j,:)),1,size(ptempspd,2)); 
+                % get spikes
+                
+                stmp = round(stemp(j,:));
+                stmp = stmp(stmp>minT);
+                stmp = stmp(stmp<maxT);
+                nspks = length(stmp);
+                stimes(j,1:nspks) = stmp;
+                binspks = zeros(1,length(minT:maxT));
+                %binspks([stmp-minT])==1;
+                binspks([stmp-round(double(minT))])=1;
+                bspks(j,1:length(minT:maxT)) = binspks;
+                count=count+1;
+                celltimes{count} = stmp-round(double(minT)); %store times relative to segment onset
+                segdata.nSpks(i,k,j) = nspks;
+                tagval(count) = i;
+            end
+            %stdpdir(i,k,1:nReps) = sqrt(var(reshape(npdirarray,1,nReps*size(ptemp,2))); 
+            % make an array the same length as stim and spike arrays with the std levels of the perturbations
+            stdpdir = [stdpdir repmat(sqrt(var(reshape(unwrap(npdirarray),1,nReps*size(ptempdir,2)))),1,nReps)];
+            nstimdir{i} = npdirarray;
+            nstimspd{i}=npspdarray;
+            spikearray = [spikearray ; bspks];
+            %spiketimes{(i-1)*nTags+k} = stimes; 
+            segdata.target(1:length(minT:maxT),i,k,1:nReps) = reshape(pdirarray',length(minT:maxT),1,1,nReps); 
+            segdata.bspks(1:length(minT:maxT),i,k,1:nReps) = reshape(bspks',length(minT:maxT),1,1,nReps); 
+            segdata.spiketimes(1:size(stimes,2),i,k,1:nReps) = reshape(stimes',size(stimes,2),1,1,nReps);
+            segdata.nfiles(i) = nReps;
+
+        end
+end 
+%%
+% for i=1:nTypes
+%     figure(1)
+%     subplot(4,2,i)
+%     plot(nstimdir{i}')
+%     title([data(i,1).trname])
+%     figure(2)
+%     subplot(4,2,i)
+%     plot(nstimspd{i}')
+%     
+% title([data(i,1).trname])
+% figure(3)
+% 
+%     subplot(4,2,i)
+%     plot(rad2deg(circ_std(deg2rad(nstimdir{i})).^2))
+%     title(['dir',data(i,1).trname{1}(8:10),', spd',data(i,1).trname{1}(12:14)])
+%     ylim([0 50])
+%     if i==3
+%         ylabel('Variance of Stimulus Direction')
+%     end
+%     figure(4)
+%     subplot(4,2,i)
+%     plot(var(nstimspd{i}))
+%     ylim([0 100])
+%     title(['dir',data(i,1).trname{1}(8:10),', spd',data(i,1).trname{1}(12:14)])
+%     if i==3
+%         ylabel('Variance of Stimulus Speed')
+%     end
+
+% end
+
+%%
+try
+    load([savedir,'nexfile.mat'])
+catch
+  [nexFile] = readNexFile()
+  save([savedir,'nexfile.mat'],'nexFile')
+end
+ts=nexFile.markers{1}.timestamps;
+%events
+ev=nexFile.markers{1}.values{1}.strings;
+n_ev=length(ev);
+ 
+%%
+%trial start
+st=zeros(1,n_ev);
+for i=1:n_ev
+    st(i)=str2num(ev{i})==2;
+end
+st1=find(st==1);
+
+%trial end
+st=zeros(1,n_ev);
+for i=1:n_ev
+    st(i)=str2num(ev{i})==3;
+end
+ed1=find(st==1);
+
+%trial saved
+st=zeros(1,n_ev);
+for i=1:n_ev
+    st(i)=str2num(ev{i})==6;
+end
+savd=find(st==1);
+
+
+trialnames=cell(1,length(st1));
+maestronames=cell(1,length(st1));
+ind=0;
+for i=1:length(st1)
+    while (str2num(ev{st1(i)+ind})~=0)
+        tmp=native2unicode(str2num(ev{st1(i)+ind}));
+        ind=ind+1;
+        trialnames{i}=[trialnames{i} tmp];
+    end
+    ind1=1;
+    while (str2num(ev{st1(i)+ind+ind1})~=0)
+        tmp=native2unicode(str2num(ev{st1(i)+ind+ind1}));
+        ind1=ind1+1;
+        maestronames{i}=[maestronames{i} tmp];
+    end
+    ind=0;
+end
+
+%
+stsn=zeros(1,1);
+idx=1;
+for i=1:length(ed1)
+    tmp=ed1(ed1>st1(i));
+    tped=tmp(1);
+    if str2num(ev{tped-1})==6
+        stsn(idx)=i;
+        idx=idx+1;
+    end
+end
+
+% stsn=stsn(3:end);       % we have to change this for different day's data
+% we get 116 trials for the results
+
+
+% pay attention
+ 
+ %%
+ 
+  stt=zeros(1,length(stsn));
+edt=zeros(1,length(stsn));
+
+for i=1:length(stsn)
+    stt(i)=ts(st1(stsn(i)));
+    tmp=ed1(ed1>st1(stsn(i)));
+    edt(i)=ts(tmp(1));
+end
+
+
+startmarkers=zeros(2,length(stsn));
+markdou2=zeros(2,length(stsn));
+markdou3=zeros(3,length(stsn));
+
+mark2=nexFile.events{1}.timestamps;
+dou2=nexFile.events{2}.timestamps;
+dou3=nexFile.events{3}.timestamps;
+
+for i=1:length(stt)
+    tmp=mark2(mark2>stt(i));
+    tmp=tmp(tmp<edt(i));
+    startmarkers(:,i)=tmp;
+    
+    tmp=dou2(dou2>stt(i));
+    tmp=tmp(tmp<edt(i));
+    markdou2(:,i)=tmp;
+    
+    tmp=dou3(dou3>stt(i));
+    tmp=tmp(tmp<edt(i));
+    markdou3(:,i)=tmp;
+end
+
+
+spikes=nexFile.neurons{neuron_idx}.timestamps;   % pay attention here, choice the unit you want
+
+%
+spk_tr=cell(2,length(stsn));
+spk_fortrans=cell(1,length(stsn));
+for i=1:length(stsn)
+    %first pert
+    tmp=spikes;
+    tmp=tmp(tmp>markdou3(2,i));
+    tmp=tmp(tmp<markdou3(3,i));
+    spk_tr{1,i}=1000.*(tmp-markdou3(2,i));
+    
+    %second pert
+    tmp=spikes;
+    tmp=tmp(tmp>markdou3(3,i));
+    tmp=tmp(tmp<markdou2(2,i));
+    spk_tr{2,i}=1000*(tmp-markdou3(3,i));
+    %both perts together     
+    tmp=spikes;
+    tmp=tmp(tmp>markdou3(2,i));
+    tmp=tmp(tmp<markdou2(2,i)+0.01); %to end of trial
+    spk_fortrans{i}=1000.*(tmp-markdou3(2,i));
+end
+% have a look of the spk_tr, the firing rate seems too low. maybe we will
+% not get good results.
+
+ spk_use=spk_tr;      % here get the trials we want to use
+tri_use=trialnames(stsn); % same aim as spk_use
+
+tri_num=zeros(1,length(stsn));
+tname={};
+for i=1:length(stsn)
+    tmp=tri_use{i};
+    tname = unique([tname tmp]);
+end
+
+for i=1:length(stsn)
+    tri_num(i)=find(strcmp(tname,tri_use{i}));
+end
+
+%  the firing rate of the neuron= spk_tr, trialnames=tri_num. 
+% perts of the stimulus = pert.
+
+
+% numlevels=2; %HTL, LTH
+% numconditions=2; %dir, spd
+%%
+ntype=unique(tri_num);
+tris=length(tri_num);
+n_eachtri=zeros(1,length(ntype));
+spktri=cell(1,length(ntype));
+transpk=cell(1,length(ntype));
+%trial order: HTL_HTL, HTL_LTH, HTL_LTL, 
+%LTH_HTL, LTH_LTH, LTH_LTL, LTL_HTL, LTL_LTH
+for i=1:tris
+%     n_eachtri(tri_num(i))=n_eachtri(tri_num(i))+1;
+%     spktri{tri_num(i),(4*n_eachtri(tri_num(i))-3):(4*n_eachtri(tri_num(i)))}=spk_use(:,i);
+      spktri{tri_num(i)}=[spktri{tri_num(i)} spk_use(:,i)];
+      transpk{tri_num(i)}=[transpk{tri_num(i)} spk_fortrans(:,i)];
+end
+
+for i=1:tris
+    for j=1:length(ntype)
+       if tri_num(i)==ntype(j)
+           n_eachtri(j)=n_eachtri(j)+1;
+       end
+    end
+end
+
+%
+%
+cumn=1;
+stimtrain_dir=cell(1,length(ntype));
+%
+for i=ntype
+    tp=n_eachtri(i);
+    for j=1:tp
+        stimtrain_dir{i}=[stimtrain_dir{i}; nstimdir{i}(j,:)];
+%         cumn=cumn+1;
+    end
+end
+%
+stimtrain_spd=cell(1,length(ntype));
+
+cumn=1;
+for i=ntype
+    tp=n_eachtri(i);
+    for j=1:tp
+        stimtrain_spd{i}=[stimtrain_spd{i}; nstimspd{i}(j,:)];
+%         cumn=cumn+1;
+    end
+end
+
+%% direction-speed STA
+pairs=[{'dirL_spdL'},{[1 3 5 6 7 8]},{{[2],[2],[1],[1],[2],[1]}};{'dirH_spdH'},{[1 5]},{{[1],[2]}};... 
+        {'dirL_spdH'},{[2 4 7 8]},{{[2],[1],[1],[2]}};{'dirH_spdL'},{[2 3 4 6]},{{[1],[1],[2],[2]}}];
+dirspd_sta
+    
+% for varpair=1:size(pairs,1)/2
+
+
+
+
