@@ -8,6 +8,7 @@ else
 end
 path(path,[rt,'MT/MATLAB/bing_ana']);
 path(path,[rt,'RMVideo_backup']);
+path(path,[rt,'MattM/Code/population decoding']);
 trialsdir=[rt,'MT/Data/ga031015/maestro'];
 savedir=[rt,'MT/Data/ga031015/mat/'];
 experiment='ga031015a1_dirspd_simul45';
@@ -456,12 +457,15 @@ for i=1:numtriTypes
             spkseg_tmp=[spkseg_tmp,spktri{1,tr}(seg,:)];
         end
     end
+    stdlev(i,1)=rad2deg(circ_std(deg2rad(reshape(stimspk{i,1},1,[])),[],[],2));
+    stdlev(i,2)=std(reshape(stimspk{i,2},1,[]),[],2);
+
     ntr=size(spkseg_tmp,2);
     for k=1:ntr
         stimspk{i,3}(k,1:length(spkseg_tmp{k}))=round(spkseg_tmp{k});
     end
 end
-
+save([experiment,'_stimspk.mat'],'stimspk','stdlev')
 % blorp
 % dirspd_sta
 
@@ -527,8 +531,22 @@ amp_filter=zeros(numtriTypes,1);
 std_filter=zeros(numtriTypes,1);
 m_stdsti=zeros(numtriTypes,1);
 figure;
+%
 colors=distinguishable_colors(numtriTypes);
 trinums=[1,2,5:8];
+%%
+
+ct=1;
+
+for i=trinums
+    if i==1||i==2
+        legcell{ct}=[sprintf('%2.2f',stdlev(i,1)),' deg / no speed variance'];
+    else
+        legcell{ct}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+    end
+    ct=ct+1;
+end
+%%
 for i=trinums
     hold on;
 %     subplot(1,2,1);
@@ -563,21 +581,24 @@ for i=trinums
         linfilt_dir(i,j).idx=myidx;
 %         filter(i,j).coef=mean(ccoef.allt(pshift,myidx));
 end
-    set(gca,'FontSize',16,'Box','Off','TickDir','Out');
-    xlim([-50 250]);
+
+set(gca,'FontSize',12,'Box','Off','TickDir','Out');
+xlim([-50 250]);
 %     legend(['20 deg ccoef: ',num2str(filter(1).coef)],['60 deg ccoef: ',num2str(filter(2).coef)]);
-    [legh,~,~,~]=legend(pairs(trinums,1));   
-    set(legh,'Interpreter','none','Location','SouthOutside','FontSize',14)
-    lc=get(legh,'Children');
-    for i=[1 3 5 7 9 11]
-        ts=get(get(lc(i),'Children'),'Children');
-        set(ts(2),'LineWidth',2)
-    end
+%%
+[legh,~,~,~]=legend(legcell);   
+set(legh,'Interpreter','none','Location','EastOutside','FontSize',14)
+lc=get(legh,'Children');
+for i=[1 3 5 7 9 11]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',2)
+end
+%%
 xlabel('Time lag (ms)');
-    ylabel('Filter Amplitude');
-    axis square;
-    title('Direction filters');
-    box off;
+ylabel('Filter Amplitude');
+axis square;
+title('Direction');
+box off;
 saveas(gcf,[experiment,'linfilt_dir.fig'])
 save([experiment,'_linfilt_dir.mat'],'linfilt_dir','pairs')
 %
@@ -659,7 +680,19 @@ std_filter=zeros(numtriTypes,1);
 m_stdsti=zeros(numtriTypes,1);
 figure;
 colors=distinguishable_colors(numtriTypes);
+%%
 trinums=3:8;
+ct=1;
+
+for i=trinums
+    if i==3||i==4
+        legcell{ct}=['no direction variance / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+    else
+        legcell{ct}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+    end
+    ct=ct+1;
+end
+%%
 for i=trinums
     hold on;
 %     subplot(1,2,1);
@@ -697,20 +730,24 @@ end
     set(gca,'FontSize',16,'Box','Off','TickDir','Out');
     xlim([-50 250]);
 %     legend(['20 deg ccoef: ',num2str(filter(1).coef)],['60 deg ccoef: ',num2str(filter(2).coef)]);
-    [legh,~,~,~]=legend(pairs(trinums,1));   
-    set(legh,'Interpreter','none','Location','SouthOutside','FontSize',14)
-    lc=get(legh,'Children');
-    for i=[1 3 5 7 9 11]
-        ts=get(get(lc(i),'Children'),'Children');
-        set(ts(2),'LineWidth',2)
-    end
+    %%
+[legh,~,~,~]=legend(legcell); 
+legh=findobj(gcf,'Type','axes','Tag','legend');
+% set(legh,'Interpreter','none','Location','EastOutside','FontSize',14)
+lc=get(legh,'Children');
+for i=[1 3 5 7 9 11]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+%%
     xlabel('Time lag (ms)');
-    ylabel('Filter Amplitude');
+    ylabel('Filter Amplitude (1/s)');
     axis square;
-    title('Speed Filters');
+    title('Speed');
     box off;
+    %%
 saveas(gcf,[experiment,'linfilt_spd.fig'])
-save([experiment,'_linfilt_spd.mat'],'linfilt_spd','pairs')
+save([experiment,'_linfilt_spd.mat'],'linfilt_spd','pairs','stdlev')
 
 
 %%

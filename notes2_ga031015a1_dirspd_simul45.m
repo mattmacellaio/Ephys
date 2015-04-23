@@ -1,8 +1,13 @@
 % sta over time
 % sandbox for direction-speed STA
-% load notevars.mat
-clearvars -except experiment pairs stimtrain_dir spktri stimtrain_spd nstimdir nstimspd seg_dur nTypes numtriTypes 
+load notevars.mat
+% clearvars -except stimtrain_dir spktri stimtrain_spd nstimdir nstimspd seg_dur nTypes
+pairs=[{'dirL_nospd'},{[1 6]},{{[2,3],[1]}};{'dirH_nospd'},{[1 6]},{{[1],[2,3]}};...
+        {'spdL_nodir'},{[2 7]},{{[2,3],[1]}};{'spdH_nodir'},{[2 7]},{{[1],[2,3]}};...
+        {'dirL_spdL'},{[3 9 10 11 12]},{{[3],[2],[2],[3],[2]}};{'dirH_spdH'},{[3 9]},{{[2],[3]}};... %  {'dirL_spdL'},{[3 5 9 10 11 12]},{{[3],[3],[2],[2],[3],[2]}}
+        {'dirL_spdH'},{[4 8 11 12]},{{[3],[2],[2],[3]}};{'dirH_spdL'},{[4 8 10]},{{[2],[3],[3]}}]; %{'dirH_spdL'},{[4 5 8 10]},{{[2],[2],[3],[3]}}
 % for varpair=1:size(pairs,1)/2
+numtriTypes=size(pairs,1);
 
 % 
 % stimspk=cell(size(pairs,1),3); % dir stim, spd stim, spikes trials x time.
@@ -30,7 +35,7 @@ stimarray_dir=[];
 nTypes=length(nstimspd);
 for i=1:nTypes
     stimarray_spd=[stimarray_spd,reshape(nstimspd{i},1,[])];
-    stimarray_dir=[stimarray_dir,reshape(nstimdir{i},1,[])];
+    stimarray_dir=[stimarray_dir,reshape(rad2deg(unwrap(deg2rad(nstimdir{i}))),1,[])];
 end
 %
 %
@@ -45,17 +50,17 @@ for i=1:length(stimarray_dir)
         stimarray_dir(i)=stimarray_dir(i)+180;
     end
 end
-nBins=60;
+nBins=50;
 [h, binc_spd]=hist(stimarray_spd,nBins);
 binsize_spd=binc_spd(2)-binc_spd(1);
 %
 [h,binc_dir]=hist(stimarray_dir,nBins);
-binsize_dir=binc_dir(2)-binc_dir(1);
-%%
+binsize_dir=binc_dir(2)-binc_dir(1);%%
         
 tic
 rep=1;
 tL=400;
+nStimDims=2;
 sta=zeros(nBins,nBins,tL,rep,numtriTypes);
 STA=zeros(nBins,nBins,tL,rep);
 STC=zeros(nBins,nBins,tL,rep);
@@ -108,7 +113,7 @@ for i=1:numtriTypes
         index=randperm(ntri);
         ind_use=index(1:round(0.8*length(index)));       
         [sta1,STA1,STC1] = get_2sta(spk{1,i}(ind_use,:), stim2d(:,:,ind_use,:));
-        sta(:,:,:,rp,i)=-sta1;
+        sta(:,:,:,rp,i)=sta1;
     end
 end
 toc
@@ -155,138 +160,23 @@ clear stim
 %     end
 %     j
 % end
-clearvars -except pairs sta binc_dir binc_spd experiment
-save([experiment,'_STA.mat'],'stdlev','sta','binc_dir','binc_spd','pairs','-v7.3')
+clearvars -except sta 
+save('ga031015_STA.mat','sta','-v7.3')
 
-
-
-%% if just loading sta
-load([experiment,'_linfilt_spd.mat'],'stdlev')
+%%
 lags=[-199:200];
-numtriTypes=size(sta,5);
-numBins=size(sta,1);
+numtriTypes=8;
+
 maxsta=squeeze(max(max(max(mean(sta,4),[],3),[],2)));
-minsta=squeeze(min(min(min(mean(sta,4),[],3),[],2)));
-tsd=repmat(binc_dir',1,numBins);
-tss=repmat(binc_spd,numBins,1);
-colors=distinguishable_colors(8);
-h1=figure;
-h2=figure;
-h3=figure;
-for i=1:numtriTypes
-    for t=1:size(sta,3)
-        sta_spd_exp(:,t,i)=sum(sta(:,:,t,1,i).*tss,1);
-        sta_dir_exp(:,t,i)=sum(sta(:,:,t,1,i).*tsd,2);
-        sta_dir(t,i)=sum(sta_dir_exp(:,t,i));
-        sta_spd(t,i)=sum(sta_spd_exp(:,t,i));
-    end
-%     if abs(min(min(sta_dir)))>abs(max(max(sta_dir)))...
-%             ||abs(min(min(sta_spd)))>abs(max(max(sta_spd)))
-%         sta=-sta;
-%         for t=1:size(sta,3)
-%             sta_spd_exp(:,t,i)=sum(sta(:,:,t,1,i).*tss,1);
-%             sta_dir_exp(:,t,i)=sum(sta(:,:,t,1,i).*tsd,2);
-%             sta_dir(t,i)=sum(sta_dir_exp(:,t,i));
-%             sta_spd(t,i)=sum(sta_spd_exp(:,t,i));
-%         end
-%     end
-    figure(h1);
-    subplot(numtriTypes/2,2,i)
-    imagesc(lags,binc_dir,sta_dir_exp(:,:,i))
-    xlabel('time');ylabel('direction')
-    colorbar
-    title(pairs{i,1},'Interpreter','none')
-    figure(h2);
-    subplot(numtriTypes/2,2,i)
-    imagesc(lags,binc_spd,sta_spd_exp(:,:,i))
-    colorbar
-    title(pairs{i,1},'Interpreter','none')
-    xlabel('time');ylabel('speed')
-    title(pairs{i,1})
-    figure(h3);subplot 211
-    plot(lags,sta_dir(:,i),'Color',colors(i,:),'LineWidth',2);hold all
-    figure(h3);subplot 212
-    plot(lags,sta_spd(:,i),'Color',colors(i,:),'LineWidth',2);hold all
-    
-end
+figure;
+for t=7
+    normsta(:,:,:,t)=mean(sta(:,:,:,:,t),4)./maxsta(t);
 
-
-figure(h1)
-suptitle('direction STA over time')
-figure(h2)
-suptitle('speed STA over time')
-figure(h3)
-subplot 211
-legend(pairs{:,1})
-set(legend,'Interpreter','none')
-xlabel('time');ylabel('direction')
-figure(h3)
-subplot 212
-legend(pairs{:,1})
-set(legend,'Interpreter','none')
-xlabel('time');ylabel('speed')
-
-
-    %
-%% for t=4
-    figure;
-
-for tt=1:numtriTypes
-%     t=[-105 -65];
-%     t=t+200;
-    for i=201:-2:51    
-        normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4)./max(max(max(sta(:,:,:,:,tt),[],3),[],2));
-%         diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
-
-%         imagesc(binc_spd,binc_dir,diffsta./max(max(diffsta)))
-%         subplot(2,4,tt)
-%         diffsta=normsta(:,:,t(1),tt)'-normsta(:,:,t(2),tt)';
-%         imagesc(binc_dir,binc_spd,diffsta)
-
-        imagesc(binc_dir,binc_spd,normsta(:,:,i,tt)')
-        
-%         title([num2str(abs(lags(t(i)))),'ms pre-spike'])
+% for t=1:numtriTypes
+    for i=101:1:201
+        imagesc(-50:(150/50):50,-100:(200/50):100,normsta(:,:,i,t))
+        title([num2str(lags(i)),', type',num2str(t)])
         colorbar
-        title(lags(i))
         pause(0.05)
     end
-    if tt==1||tt==2
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ','no speed variance'];
-    elseif tt==3||tt==4
-        tstr=['no direction variance / SD ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
-    else
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
-    end
-
 end
-%%   suptitle(tstr)
-for tt=1:numtriTypes
-    figure;
-    t=[-120 -105 -80 -65 -50 -35];
-    t=t+200;
-    for i=1:length(t)
-        normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4)./maxsta(tt);
-%         diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
-
-%         imagesc(binc_spd,binc_dir,diffsta./max(max(diffsta)))
-        subplot(2,3,i)
-%         diffsta=normsta(:,:,t(1),tt)'-normsta(:,:,t(2),tt)';
-%         imagesc(binc_dir,binc_spd,diffsta)
-
-        imagesc(binc_dir,binc_spd,normsta(:,:,t(i),tt)')
-        
-%         title([num2str(abs(lags(t(i)))),'ms pre-spike'])
-        colorbar
-        title(lags(t(i)))
-%         pause(0.05)
-    end
-    if tt==1||tt==2
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ','no speed variance'];
-    elseif tt==3||tt==4
-        tstr=['no direction variance / SD ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
-    else
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
-    end
-
-end
-

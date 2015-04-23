@@ -264,7 +264,7 @@ end
 %get mean nstimdir and mean nstimspd to check
 %primary cell: unit 2
 
- neuron_idx=2;
+for neuron_idx=2:2
 %secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
 % neuron_idx=1;
 
@@ -397,7 +397,6 @@ for dir=1:numdirs
     end
 end
 
-experiment='ga032715a_dir15_5spds'; %changed from above for sanity's sake later
 
 figure;hold all
 for i=1:5
@@ -434,7 +433,7 @@ for dir=1:numdirs
     end
 end
 %
-kind=3;
+kind=2;
 
 if kind==1
     response=cumct_bin;
@@ -447,7 +446,7 @@ elseif kind==3
     tag=' from ISI';
 end
     
-%%  finite-size corrected info
+%  finite-size corrected info
 
 %use spd info to find optimal nBins_y
 
@@ -759,7 +758,7 @@ I_dirspd_joint_shuffle=Iinf_shuffle;
 save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_dirspd_joint.mat'],'I_dirspd_joint','I_dirspd_joint_shuffle')
 
 h=figure;
-% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir_mean')
+% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'])
 errorbar([1:length(I_dirspd_joint)]+tShift,I_dirspd_joint(:,2),I_dirspd_joint(:,3),'k');
 hold on
 errorbar([1:length(I_dirspd_joint_shuffle)]+tShift,I_dirspd_joint_shuffle(:,2),I_dirspd_joint_shuffle(:,3),'Color',[0.5 0.5 0.5]);
@@ -768,10 +767,23 @@ load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_combined.mat'],'I_dir_xsp
 errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2),I_dir_xspd(:,3),'r');
 errorbar([1:length(I_spd_xdir)]+tShift,I_spd_xdir(:,2),I_spd_xdir(:,3),'b');
 errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2)+I_spd_xdir(:,2),mean([I_dir_xspd(:,3),I_spd_xdir(:,3)],2),'Color',[1, 0.1034,0.7241]); %purple
-[legh,objh,~,~]=legend('I({theta,v},r)','I({theta,v},r) shuffled','I(theta,r), all v','I(v,r), all theta','Sum I(theta,r) I(v,r)');
-set(legh,'Interpreter','none','Location','SouthOutside')
+[legh,objh,~,~]=legend('I((\theta,v),r)','I(\theta,v),r) shuffled','I(\theta,r), all v','I(v,r), all \theta','\Sigma I(\theta,r) I(v,r)');
 % set(objh,'LineWidth',2)
-title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
+legh=findobj(gcf,'Type','axes','Tag','legend');
+set(legh,'Location','SouthOutside','FontSize',18)
+lc=get(legh,'Children');
+for i=[1 3 5 7 9]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+set(gca,'FontSize',18)
+xlim([-50 450])
+
+ylabel('Information from binned spike count (bits)','FontSize',12)
+yh=findobj(gcf,'Type','axes','Tag','ylabel');
+set(yh,'FontSize',18)
+tag='';
+title([' Unit ', num2str(neuron_idx),tag],'Interpreter','none','FontSize',14)
 saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint together.fig'])
 %
 h=figure;
@@ -786,16 +798,16 @@ errorbar([1:length(I_dir_mean)]+tShift,I_dir_mean(:,1),I_dir_mean(:,2),'y');
 errorbar([1:length(I_spd_mean)]+tShift,I_spd_mean(:,1),I_spd_mean(:,2),'g');
 errorbar([1:length(I_dir_mean)]+tShift,I_dir_mean(:,1)+I_spd_mean(:,1),mean([I_dir_mean(:,2),I_spd_mean(:,2)],2),'Color',[0,.7,0.7]); %teal
 
-[legh,objh,OUTH,OUTM]=legend('I({theta,v},r)','I({theta,v},r) shuffled','Mean of v-separated I(theta,r)','Mean of theta-separated I(v,r)','Sum of mean separated I(theta,r) and I(v,r)');
+[legh,objh,OUTH,OUTM]=legend('I({\theta,v},r)','I({\theta,v},r) shuffled','Mean of v-separated I(\theta,r)','Mean of \theta-separated I(v,r)','Sum of mean separated I(\theta,r) and I(v,r)');
 set(legh,'Interpreter','none','Location','SouthOutside')
 % set(OBJH,'LineWidth',2)
 title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
 
 saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint separated.fig'])
-
-% 
-elseif kind==3
-%% if using ISI
+end
+%%
+if kind==3
+% if using ISI
     
     %use spd info to find optimal nBins_y
 
@@ -806,26 +818,25 @@ nreps=20;
 
 for dir=1:numdirs
     for spd=1:numspds
-        data_x{dir}=[data_x{dir};ones(size(response{dir,spd})).*spds(spd)];
+        data_x{dir}=[data_x{dir},ones(size(response{dir,spd})).*spds(spd)];
         for trial=1:size(response{dir,spd})
-            data_y{dir}=[data_y{dir};{response{dir,spd}{trial}}];
+            data_y{dir}=[data_y{dir},response{dir,spd}{trial}];
         end
     end
 end
-%
-% h1=figure;
-% h2=figure;
+h1=figure;
+h2=figure;
 nBins_x=5;
 %
-% bn=200:20:400
-% colors=distinguishable_colors(length(bn));
-% for ind=1:length(bn)
+bn=200:20:400
+colors=distinguishable_colors(length(bn));
+for ind=1:length(bn)
     for dir=6 
         xdata=data_x{dir}';
         ydata=data_y{dir}';
         stimval=trialdirs_rot(dir);
-%         nBins_y=bn(ind);
-        info_isi
+        nBins_y=bn(ind);
+        info_forarup
         %alt:calc_info_P_joint but so many problems with data_x and
         %data_y: no 0s allowed in response? max(data) must be less than n_
         %(number of bins)? wtf
@@ -837,7 +848,8 @@ nBins_x=5;
         I_spd{dir}=Iinf;
 
     end
-%%
+end
+%
 % spd info
 data_x=cell(1,numdirs);
 data_y=cell(1,numdirs);
@@ -1116,9 +1128,16 @@ errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2),I_dir_xspd(:,3),'r');
 errorbar([1:length(I_spd_xdir)]+tShift,I_spd_xdir(:,2),I_spd_xdir(:,3),'b');
 errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2)+I_spd_xdir(:,2),mean([I_dir_xspd(:,3),I_spd_xdir(:,3)],2),'Color',[1, 0.1034,0.7241]); %purple
 [legh,objh,~,~]=legend('I({theta,v},r)','I({theta,v},r) shuffled','I(theta,r), all v','I(v,r), all theta','Sum I(theta,r) I(v,r)');
-set(legh,'Interpreter','none','Location','SouthOutside')
-% set(objh,'LineWidth',2)
-title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
+set(legh,'Interpreter','none','Location','SouthOutside','FontSize',14)
+lc=get(legh,'Children');
+for i=[1 3 5 7 9]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',2)
+end
+
+% title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
+th=get(gca,'Title');
+set(th,'FontSize',15)
 saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint together.fig'])
 %
 h=figure;
@@ -1134,9 +1153,15 @@ errorbar([1:length(I_spd_mean)]+tShift,I_spd_mean(:,1),I_spd_mean(:,2),'g');
 errorbar([1:length(I_dir_mean)]+tShift,I_dir_mean(:,1)+I_spd_mean(:,1),mean([I_dir_mean(:,2),I_spd_mean(:,2)],2),'Color',[0,.7,0.7]); %teal
 
 [legh,objh,OUTH,OUTM]=legend('I({theta,v},r)','I({theta,v},r) shuffled','Mean of v-separated I(theta,r)','Mean of theta-separated I(v,r)','Sum of mean separated I(theta,r) and I(v,r)');
-set(legh,'Interpreter','none','Location','SouthOutside')
-% set(OBJH,'LineWidth',2)
+set(legh,'Interpreter','none','Location','SouthOutside','FontSize',14)
+lc=get(legh,'Children');
+for i=[1 3 5 7 9]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',2)
+end
 title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
+th=set(gca,'Title');
+set(th,'FontSize',15)
 
 saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint separated.fig'])
 end %for count vs. isi loop
