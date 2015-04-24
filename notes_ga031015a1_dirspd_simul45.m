@@ -536,15 +536,15 @@ colors=distinguishable_colors(numtriTypes);
 trinums=[1,2,5:8];
 %%
 
-ct=1;
 
-for i=trinums
+for i=1:numtriTypes
     if i==1||i==2
-        legcell{ct}=[sprintf('%2.2f',stdlev(i,1)),' deg / no speed variance'];
+        legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / 0 dps'];
+    elseif i==3||i==4
+        legcell{i}=['0 deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
     else
-        legcell{ct}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+        legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
     end
-    ct=ct+1;
 end
 %%
 for i=trinums
@@ -585,15 +585,15 @@ end
 set(gca,'FontSize',12,'Box','Off','TickDir','Out');
 xlim([-50 250]);
 %     legend(['20 deg ccoef: ',num2str(filter(1).coef)],['60 deg ccoef: ',num2str(filter(2).coef)]);
-%%
-[legh,~,~,~]=legend(legcell);   
+%
+[legh,~,~,~]=legend(legcell{trinums});   
 set(legh,'Interpreter','none','Location','EastOutside','FontSize',14)
 lc=get(legh,'Children');
 for i=[1 3 5 7 9 11]
     ts=get(get(lc(i),'Children'),'Children');
     set(ts(2),'LineWidth',2)
 end
-%%
+%
 xlabel('Time lag (ms)');
 ylabel('Filter Amplitude');
 axis square;
@@ -601,8 +601,10 @@ title('Direction');
 box off;
 saveas(gcf,[experiment,'linfilt_dir.fig'])
 save([experiment,'_linfilt_dir.mat'],'linfilt_dir','pairs')
-%
 
+
+
+%%
 % amp_filter=abs(amp_filter);
 % subplot(1,2,2);
 % 
@@ -680,7 +682,7 @@ std_filter=zeros(numtriTypes,1);
 m_stdsti=zeros(numtriTypes,1);
 figure;
 colors=distinguishable_colors(numtriTypes);
-%%
+%
 trinums=3:8;
 ct=1;
 
@@ -692,7 +694,7 @@ for i=trinums
     end
     ct=ct+1;
 end
-%%
+%
 for i=trinums
     hold on;
 %     subplot(1,2,1);
@@ -730,7 +732,7 @@ end
     set(gca,'FontSize',16,'Box','Off','TickDir','Out');
     xlim([-50 250]);
 %     legend(['20 deg ccoef: ',num2str(filter(1).coef)],['60 deg ccoef: ',num2str(filter(2).coef)]);
-    %%
+    %
 [legh,~,~,~]=legend(legcell); 
 legh=findobj(gcf,'Type','axes','Tag','legend');
 % set(legh,'Interpreter','none','Location','EastOutside','FontSize',14)
@@ -739,16 +741,152 @@ for i=[1 3 5 7 9 11]
     ts=get(get(lc(i),'Children'),'Children');
     set(ts(2),'LineWidth',3)
 end
-%%
+%
     xlabel('Time lag (ms)');
     ylabel('Filter Amplitude (1/s)');
     axis square;
     title('Speed');
     box off;
-    %%
+    %
 saveas(gcf,[experiment,'linfilt_spd.fig'])
 save([experiment,'_linfilt_spd.mat'],'linfilt_spd','pairs','stdlev')
 
+%% to replot separately
+
+h1=figure;
+subplot 321
+hold all
+colors=distinguishable_colors(numtriTypes);
+inds=1:2;
+for i=inds
+    myfilter=[linfilt_dir(i).results(pshift,myidx).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+    if length(myidx)>1
+        std_filter(j,i)=tmpp(tempt);
+    end
+    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+title('Direction Filters','FontSize',18)
+
+subplot 323
+hold all
+inds=[5,8];
+for i=inds
+    myfilter=[linfilt_dir(i).results(pshift,myidx).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+    if length(myidx)>1
+        std_filter(j,i)=tmpp(tempt);
+    end
+    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+ylabel('Filter Amplitude (spikes/s ^2deg)','FontSize',18)
+
+subplot 325;hold all
+inds=[6,7];
+for i=inds
+    myfilter=[linfilt_dir(i).results(pshift,myidx).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+    if length(myidx)>1
+        std_filter(j,i)=tmpp(tempt);
+    end
+    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+xlabel('Time Lag (ms)','FontSize',16)
+
+figure(h1);
+subplot 322
+hold all
+colors=distinguishable_colors(numtriTypes);
+inds=[3,4];
+for i=inds
+    myfilter=[linfilt_spd(i).results(pshift,myidx).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+    if length(myidx)>1
+        std_filter(j,i)=tmpp(tempt);
+    end
+    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+title('Speed Filters','FontSize',18)
+
+
+subplot 324
+hold all
+inds=[5,7];
+for i=inds
+    myfilter=[linfilt_spd(i).results(pshift,myidx).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+    if length(myidx)>1
+        std_filter(j,i)=tmpp(tempt);
+    end
+    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+ylabel('Filter Amplitude (spikes/s-deg)','FontSize',18)
+
+subplot 326;hold all
+inds=[6,8];
+for i=inds
+    myfilter=[linfilt_spd(i).results(pshift,myidx).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+    if length(myidx)>1
+        std_filter(j,i)=tmpp(tempt);
+    end
+    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+xlabel('Time Lag (ms)','FontSize',16)
 
 %%
 % bin spikes
