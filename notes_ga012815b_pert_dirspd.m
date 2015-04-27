@@ -1,7 +1,7 @@
 
 
 
-% clear all;
+ clear all;
 
 if ispc
     rt='Z:/';
@@ -320,6 +320,8 @@ end
 % numconditions=2; %dir, spd
 %%
 ntype=unique(tri_num);
+numtriTypes=length(ntype);
+
 tris=length(tri_num);
 n_eachtri=zeros(1,length(ntype));
 spktri=cell(1,length(ntype));
@@ -365,11 +367,9 @@ for i=ntype
     end
 end
 
-%% sandbox for direction-speed STA
-
+%% direction-speed STA
 pairs=[{'dirL_spdL'},{[1 3 5 6 7 8]},{{[2],[2],[1],[1],[2],[1]}};{'dirH_spdH'},{[1 5]},{{[1],[2]}};... 
         {'dirL_spdH'},{[2 4 7 8]},{{[2],[1],[1],[2]}};{'dirH_spdL'},{[2 3 4 6]},{{[1],[1],[2],[2]}}];
-   
 stimspk=cell(size(pairs,1),3); % dir stim, spd stim, spikes trials x time.
 numtriTypes=size(pairs,1);
 %
@@ -393,11 +393,12 @@ for i=1:numtriTypes
     end
 end
 save([experiment,'_stimspk.mat'],'stimspk','stdlev')
+% blorp
+% dirspd_sta
 
 
-
-
-%% direction linfilt
+%
+% direction linfilt
 skseg(:,1)=stimspk(:,3);
 stimseg(:,1)=stimspk(:,1);
 
@@ -460,21 +461,38 @@ figure;
 %
 colors=distinguishable_colors(numtriTypes);
 trinums=[1:4];
-%%
+%
 
 
 for i=1:numtriTypes
-    legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+    legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
 end
 %%
-for i=[3:4]
+for i=trinums
     hold on;
 %     subplot(1,2,1);
      j=1;
         stim=tnoise{i,j}(bin:end,:); %(1:end-bin+1,:);
         spk=sldspk{i,j};
         [filtdir, eye_est, index2_list, residuals, ccoef, error]=fget_linfilt(stim,spk,shift,ft,cutoff,maxK);
-      
+        myidx=1:2;  %=find(ccoef.allt(pshift,:)>=0.01);
+        if isempty(myidx)
+            if i==numtriTypes
+                break;
+            end
+            continue;
+        end
+%         myfilter=[filtdir(pshift,myidx).filter_allt]*1000;
+%         [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+%        
+%         tmpp=std(myfilter');
+%         if length(myidx)>1
+%            std_filter(j,i)=tmpp(tempt);
+%         end
+%            m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%            errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:)); 
+%            hold on; 
+       
         linfilt_dir(i,j).results=filtdir;
         linfilt_dir(i,j).eyeest=eye_est;
         linfilt_dir(i,j).index2=index2_list;
@@ -507,7 +525,7 @@ save([experiment,'_linfilt_dir.mat'],'linfilt_dir','pairs')
 
 
 
-%%
+%
 % amp_filter=abs(amp_filter);
 % subplot(1,2,2);
 % 
@@ -524,7 +542,7 @@ save([experiment,'_linfilt_dir.mat'],'linfilt_dir','pairs')
 % axis square;
 % box off;
 
-% speed linfilt
+%% speed linfilt
 skseg(:,1)=stimspk(:,3);
 stimseg(:,1)=stimspk(:,2);
 
@@ -586,12 +604,18 @@ m_stdsti=zeros(numtriTypes,1);
 figure;
 colors=distinguishable_colors(numtriTypes);
 %
-for i=1:numtriTypes
-    legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+trinums=1:4;
+ct=1;
+
+for i=trinums
+%     if i==3||i==4
+%         legcell{ct}=['no direction variance / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+%     else
+        legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+%     end
+%     ct=ct+1;
 end
 %
-trinums=[1:4];
-
 for i=trinums
     hold on;
 %     subplot(1,2,1);
@@ -599,13 +623,13 @@ for i=trinums
         stim=tnoise{i,j}(bin:end,:); %(1:end-bin+1,:);
         spk=sldspk{i,j};
         [filtspd, eye_est, index2_list, residuals, ccoef, error]=fget_linfilt(stim,spk,shift,ft,cutoff,maxK);
-%         myidx=1:2;  %=find(ccoef.allt(pshift,:)>=0.01);
-%         if isempty(myidx)
-%             if i==numtriTypes
-%                 break;
-%             end
-%             continue;
-%         end
+        myidx=1:2;  %=find(ccoef.allt(pshift,:)>=0.01);
+        if isempty(myidx)
+            if i==numtriTypes
+                break;
+            end
+            continue;
+        end
 %         myfilter=[filtspd(pshift,myidx).filter_allt]*1000;
 %         [amp_filter(j,i) tempt]=min(mean(myfilter,2));
 %        
@@ -634,7 +658,7 @@ end
 legh=findobj(gcf,'Type','axes','Tag','legend');
 % set(legh,'Interpreter','none','Location','EastOutside','FontSize',14)
 lc=get(legh,'Children');
-for i=[1 3 5 7]
+for i=[1 3 5 7 9 11]
     ts=get(get(lc(i),'Children'),'Children');
     set(ts(2),'LineWidth',3)
 end
@@ -658,12 +682,18 @@ pshift=1;
 ft=250;
 lag=[1:ft];
 colors=distinguishable_colors(numtriTypes);
-inds=[1,4]
+inds=[1,4];
 j=1;
 for i=1:numtriTypes
-    legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+%     if i==1||i==2
+%         legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / 0 dps'];
+%     elseif i==3||i==4
+%         legcell{i}=['0 deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+%     else
+        legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+%     end
 end
-
+%
 for i=inds
     myfilter=[linfilt_dir(i).results(pshift,:).filter_allt]*1000;
     [amp_filter(j,i) tempt]=min(mean(myfilter,2));
@@ -703,8 +733,7 @@ for i=[1 3]
     ts=get(get(lc(i),'Children'),'Children');
     set(ts(2),'LineWidth',3)
 end
-ylabel('Filter Amplitude (spikes/s ^2deg)','FontSize',18)
-
+ylabel('Filter Amplitude (spikes/s ^2deg)','FontSize',16)
 xlabel('Time Lag (ms)','FontSize',16)
 
 figure(h1);
@@ -752,6 +781,11 @@ for i=[1 3]
     ts=get(get(lc(i),'Children'),'Children');
     set(ts(2),'LineWidth',3)
 end
-ylabel('Filter Amplitude (spikes/s-deg)','FontSize',18)
+ylabel('Filter Amplitude (spikes/s-deg)','FontSize',16)
 xlabel('Time Lag (ms)','FontSize',16)
+
 saveas(gcf,[experiment,'linfilt_dirspd_sep.fig'])
+
+
+
+

@@ -539,11 +539,11 @@ trinums=[1,2,5:8];
 
 for i=1:numtriTypes
     if i==1||i==2
-        legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / 0 dps'];
+        legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / 0 dps'];
     elseif i==3||i==4
-        legcell{i}=['0 deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+        legcell{i}=['0 deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
     else
-        legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+        legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
     end
 end
 %%
@@ -688,9 +688,9 @@ ct=1;
 
 for i=trinums
     if i==3||i==4
-        legcell{ct}=['no direction variance / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+        legcell{ct}=['no direction variance / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
     else
-        legcell{ct}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+        legcell{ct}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
     end
     ct=ct+1;
 end
