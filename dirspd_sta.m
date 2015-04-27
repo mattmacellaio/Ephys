@@ -230,11 +230,19 @@ xlabel('time');ylabel('speed')
     %
 %% for t=4
     figure;
-
-for tt=1:numtriTypes
+%
+for tt=1:8
 %     t=[-105 -65];
 %     t=t+200;
-    for i=201:-2:51    
+    if tt==1||tt==2
+        tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ','no speed variance'];
+    elseif tt==3||tt==4
+        tstr=['no direction variance / SD ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
+    else
+        tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
+    end
+    title(tstr)
+    for i=51:5:171    
         normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4)./max(max(max(sta(:,:,:,:,tt),[],3),[],2));
 %         diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
 
@@ -243,50 +251,54 @@ for tt=1:numtriTypes
 %         diffsta=normsta(:,:,t(1),tt)'-normsta(:,:,t(2),tt)';
 %         imagesc(binc_dir,binc_spd,diffsta)
 
-        imagesc(binc_dir,binc_spd,normsta(:,:,i,tt)')
+        imagesc(binc_dir(1:47),binc_spd(8:50),(normsta(1:47,8:50,i,tt)'))
         
 %         title([num2str(abs(lags(t(i)))),'ms pre-spike'])
         colorbar
-        title(lags(i))
-        pause(0.05)
+        title(tstr)
+%         title(lags(i))
+        pause(0.01)
     end
-    if tt==1||tt==2
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ','no speed variance'];
-    elseif tt==3||tt==4
-        tstr=['no direction variance / SD ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
-    else
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
-    end
-
+    
 end
 %%   suptitle(tstr)
+figure;
 for tt=1:numtriTypes
-    figure;
-    t=[-120 -105 -80 -65 -50 -35];
+    t=[-105 -65];
     t=t+200;
-    for i=1:length(t)
+%     for i=1:length(t)
         normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4)./maxsta(tt);
 %         diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
 
 %         imagesc(binc_spd,binc_dir,diffsta./max(max(diffsta)))
-        subplot(2,3,i)
-%         diffsta=normsta(:,:,t(1),tt)'-normsta(:,:,t(2),tt)';
-%         imagesc(binc_dir,binc_spd,diffsta)
+        subplot(2,4,tt)
+        
+        diffsta=normsta(:,:,t(2),tt)'-normsta(:,:,t(1),tt)';
+        imagesc(fliplr(binc_dir(1:47)),binc_spd(8:50),(diffsta(8:50,1:47)))
+        if tt==1||tt==5
+            ylabel('Speed (dps)','FontSize',16)
+        end
+        if tt==5||tt==6||tt==7||tt==8
+            xlabel('Direction (deg)','FontSize',16)
+        end
+        
+            
+%         imagesc(binc_dir,binc_spd,normsta(:,:,t(i),tt)')
 
-        imagesc(binc_dir,binc_spd,normsta(:,:,t(i),tt)')
         
 %         title([num2str(abs(lags(t(i)))),'ms pre-spike'])
+caxis([-0.6 0.5])
         colorbar
-        title(lags(t(i)))
+%         title(lags(t(i)))
 %         pause(0.05)
-    end
+%     end
     if tt==1||tt==2
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ','no speed variance'];
+        tstr=['SD ',sprintf('%2.0f',stdlev(tt,1)),' deg / ','0 dps'];
     elseif tt==3||tt==4
-        tstr=['no direction variance / SD ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
+        tstr=['SD 0 deg / ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
     else
-        tstr=['SD',sprintf('%2.2f',stdlev(tt,1)),' deg / ',sprintf('%2.2f',stdlev(tt,2)),' dps'];
+        tstr=['SD ',sprintf('%2.0f',stdlev(tt,1)),' deg / ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
     end
-
+    title(tstr,'FontSize',16)
 end
 

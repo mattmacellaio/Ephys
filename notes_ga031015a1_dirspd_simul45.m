@@ -561,16 +561,16 @@ for i=trinums
             end
             continue;
         end
-        myfilter=[filtdir(pshift,myidx).filter_allt]*1000;
-        [amp_filter(j,i) tempt]=min(mean(myfilter,2));
-       
-        tmpp=std(myfilter');
-        if length(myidx)>1
-           std_filter(j,i)=tmpp(tempt);
-        end
-           m_stdsti(j,i)=mean(std(stimseg{i,j}'));
-           errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:)); 
-           hold on; 
+%         myfilter=[filtdir(pshift,myidx).filter_allt]*1000;
+%         [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+%        
+%         tmpp=std(myfilter');
+%         if length(myidx)>1
+%            std_filter(j,i)=tmpp(tempt);
+%         end
+%            m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%            errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:)); 
+%            hold on; 
        
         linfilt_dir(i,j).results=filtdir;
         linfilt_dir(i,j).eyeest=eye_est;
@@ -709,16 +709,16 @@ for i=trinums
             end
             continue;
         end
-        myfilter=[filtspd(pshift,myidx).filter_allt]*1000;
-        [amp_filter(j,i) tempt]=min(mean(myfilter,2));
-       
-        tmpp=std(myfilter');
-        if length(myidx)>1
-           std_filter(j,i)=tmpp(tempt);
-        end
-           m_stdsti(j,i)=mean(std(stimseg{i,j}'));
-           errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:)); 
-           hold on; 
+%         myfilter=[filtspd(pshift,myidx).filter_allt]*1000;
+%         [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+%        
+%         tmpp=std(myfilter');
+%         if length(myidx)>1
+%            std_filter(j,i)=tmpp(tempt);
+%         end
+%            m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%            errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:)); 
+%            hold on; 
        
         linfilt_spd(i,j).results=filtspd;
         linfilt_spd(i,j).eyeest=eye_est;
@@ -756,16 +756,31 @@ save([experiment,'_linfilt_spd.mat'],'linfilt_spd','pairs','stdlev')
 h1=figure;
 subplot 321
 hold all
+numtriTypes=size(pairs,1);
+pshift=1; 
+ft=250;
+lag=[1:ft];
 colors=distinguishable_colors(numtriTypes);
 inds=1:2;
+j=1;
+for i=1:numtriTypes
+    if i==1||i==2
+        legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / 0 dps'];
+    elseif i==3||i==4
+        legcell{i}=['0 deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+    else
+        legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+    end
+end
+%
 for i=inds
-    myfilter=[linfilt_dir(i).results(pshift,myidx).filter_allt]*1000;
+    myfilter=[linfilt_dir(i).results(pshift,:).filter_allt]*1000;
     [amp_filter(j,i) tempt]=min(mean(myfilter,2));
     tmpp=std(myfilter');
-    if length(myidx)>1
-        std_filter(j,i)=tmpp(tempt);
-    end
-    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
     errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
 end
 legh=legend(legcell{inds});
@@ -781,13 +796,13 @@ subplot 323
 hold all
 inds=[5,8];
 for i=inds
-    myfilter=[linfilt_dir(i).results(pshift,myidx).filter_allt]*1000;
+    myfilter=[linfilt_dir(i).results(pshift,:).filter_allt]*1000;
     [amp_filter(j,i) tempt]=min(mean(myfilter,2));
     tmpp=std(myfilter');
-    if length(myidx)>1
-        std_filter(j,i)=tmpp(tempt);
-    end
-    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
     errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
 end
 legh=legend(legcell{inds});
@@ -800,15 +815,15 @@ end
 ylabel('Filter Amplitude (spikes/s ^2deg)','FontSize',18)
 
 subplot 325;hold all
-inds=[6,7];
+inds=[7,6];
 for i=inds
-    myfilter=[linfilt_dir(i).results(pshift,myidx).filter_allt]*1000;
+    myfilter=[linfilt_dir(i).results(pshift,:).filter_allt]*1000;
     [amp_filter(j,i) tempt]=min(mean(myfilter,2));
     tmpp=std(myfilter');
-    if length(myidx)>1
-        std_filter(j,i)=tmpp(tempt);
-    end
-    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
     errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
 end
 legh=legend(legcell{inds});
@@ -826,13 +841,13 @@ hold all
 colors=distinguishable_colors(numtriTypes);
 inds=[3,4];
 for i=inds
-    myfilter=[linfilt_spd(i).results(pshift,myidx).filter_allt]*1000;
+    myfilter=[linfilt_spd(i).results(pshift,:).filter_allt]*1000;
     [amp_filter(j,i) tempt]=min(mean(myfilter,2));
     tmpp=std(myfilter');
-    if length(myidx)>1
-        std_filter(j,i)=tmpp(tempt);
-    end
-    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
     errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
 end
 legh=legend(legcell{inds});
@@ -849,13 +864,13 @@ subplot 324
 hold all
 inds=[5,7];
 for i=inds
-    myfilter=[linfilt_spd(i).results(pshift,myidx).filter_allt]*1000;
+    myfilter=[linfilt_spd(i).results(pshift,:).filter_allt]*1000;
     [amp_filter(j,i) tempt]=min(mean(myfilter,2));
     tmpp=std(myfilter');
-    if length(myidx)>1
-        std_filter(j,i)=tmpp(tempt);
-    end
-    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
     errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
 end
 legh=legend(legcell{inds});
@@ -868,15 +883,15 @@ end
 ylabel('Filter Amplitude (spikes/s-deg)','FontSize',18)
 
 subplot 326;hold all
-inds=[6,8];
+inds=[8,6];
 for i=inds
-    myfilter=[linfilt_spd(i).results(pshift,myidx).filter_allt]*1000;
+    myfilter=[linfilt_spd(i).results(pshift,:).filter_allt]*1000;
     [amp_filter(j,i) tempt]=min(mean(myfilter,2));
     tmpp=std(myfilter');
-    if length(myidx)>1
-        std_filter(j,i)=tmpp(tempt);
-    end
-    m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
     errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
 end
 legh=legend(legcell{inds});

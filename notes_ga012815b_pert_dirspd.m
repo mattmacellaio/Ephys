@@ -365,13 +365,393 @@ for i=ntype
     end
 end
 
-%% direction-speed STA
+%% sandbox for direction-speed STA
+
 pairs=[{'dirL_spdL'},{[1 3 5 6 7 8]},{{[2],[2],[1],[1],[2],[1]}};{'dirH_spdH'},{[1 5]},{{[1],[2]}};... 
         {'dirL_spdH'},{[2 4 7 8]},{{[2],[1],[1],[2]}};{'dirH_spdL'},{[2 3 4 6]},{{[1],[1],[2],[2]}}];
-dirspd_sta
-    
-% for varpair=1:size(pairs,1)/2
+   
+stimspk=cell(size(pairs,1),3); % dir stim, spd stim, spikes trials x time.
+numtriTypes=size(pairs,1);
+%
+for i=1:numtriTypes
+    spkseg_tmp=[];
+    for trI=1:size(pairs{i,2},2)            %trialtype index
+        tr=pairs{i,2}(trI);                 %trialtype
+        for segI=1:size(pairs{i,3}{trI},2)  %segment index
+            seg=pairs{i,3}{trI}(segI);      %segment
+            stimspk{i,1}=[stimspk{i,1};stimtrain_dir{1,tr}(:,(seg-1)*seg_dur+1:seg*seg_dur)];
+            stimspk{i,2}=[stimspk{i,2};stimtrain_spd{1,tr}(:,(seg-1)*seg_dur+1:seg*seg_dur)];
+            spkseg_tmp=[spkseg_tmp,spktri{1,tr}(seg,:)];
+        end
+    end
+    stdlev(i,1)=rad2deg(circ_std(deg2rad(reshape(stimspk{i,1},1,[])),[],[],2));
+    stdlev(i,2)=std(reshape(stimspk{i,2},1,[]),[],2);
+
+    ntr=size(spkseg_tmp,2);
+    for k=1:ntr
+        stimspk{i,3}(k,1:length(spkseg_tmp{k}))=round(spkseg_tmp{k});
+    end
+end
+save([experiment,'_stimspk.mat'],'stimspk','stdlev')
 
 
 
 
+%% direction linfilt
+skseg(:,1)=stimspk(:,3);
+stimseg(:,1)=stimspk(:,1);
+
+tnoise=cell(numtriTypes,1);
+spkcounts=cell(numtriTypes,1);
+sldspk=cell(numtriTypes,1);
+bin=20;
+nbin=1:(seg_dur-bin+1);
+
+for i=1:numtriTypes
+   j=1;
+        tnoise{i,j}=stimseg{i,j}';
+        
+        tmp=skseg{i,j}';
+        spkcounts{i,j}=zeros(size(tnoise{i,j}));
+        for k=1:size(tmp,2)
+            counts=tmp(:,k);
+            for tt=1:max(counts);
+	            spkcounts{i,j}(tt,k) = length(find(counts==tt));    
+            end	
+            for b=1:length(nbin)
+                tp=counts(counts>b);
+                tp=tp(tp<b+bin-1);
+                sldspk{i,j}(b,k)=length(tp);
+            end
+        end
+        
+end
+%
+for i=1:numtriTypes
+    j=1;
+        sldspk{i,j}=sldspk{i,j}.*1000./bin;
+end
+%
+
+
+
+shift =50;
+shifts=[0 shift];
+cutoff=25;
+ft=250;
+maxK=20;
+pshift=1; 
+lag=[1:ft];
+
+for i=1:numtriTypes
+    j=1;
+        temp=sldspk{i,j};
+        sldspk{i,j}=sldspk{i,j}-repmat(mean(sldspk{i,j},1),size(sldspk{1,1},1),1);
+        tnoise{i,j}=tnoise{i,j}-repmat(mean(tnoise{i,j},1),size(tnoise{1,1},1),1);
+end
+
+mycolor=colormap;
+clear linfilt_results eye_est index2_list residuals cceof error
+
+amp_filter=zeros(numtriTypes,1); 
+std_filter=zeros(numtriTypes,1);
+m_stdsti=zeros(numtriTypes,1);
+figure;
+%
+colors=distinguishable_colors(numtriTypes);
+trinums=[1:4];
+%%
+
+
+for i=1:numtriTypes
+    legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+end
+%%
+for i=[3:4]
+    hold on;
+%     subplot(1,2,1);
+     j=1;
+        stim=tnoise{i,j}(bin:end,:); %(1:end-bin+1,:);
+        spk=sldspk{i,j};
+        [filtdir, eye_est, index2_list, residuals, ccoef, error]=fget_linfilt(stim,spk,shift,ft,cutoff,maxK);
+      
+        linfilt_dir(i,j).results=filtdir;
+        linfilt_dir(i,j).eyeest=eye_est;
+        linfilt_dir(i,j).index2=index2_list;
+        linfilt_dir(i,j).residuals=residuals;
+        linfilt_dir(i,j).ccoef=ccoef;
+        linfilt_dir(i,j).error=error;
+        linfilt_dir(i,j).idx=myidx;
+%         filter(i,j).coef=mean(ccoef.allt(pshift,myidx));
+end
+
+set(gca,'FontSize',12,'Box','Off','TickDir','Out');
+xlim([-50 250]);
+%     legend(['20 deg ccoef: ',num2str(filter(1).coef)],['60 deg ccoef: ',num2str(filter(2).coef)]);
+%
+[legh,~,~,~]=legend(legcell{trinums});   
+set(legh,'Interpreter','none','Location','EastOutside','FontSize',14)
+lc=get(legh,'Children');
+for i=[1 3 5 7 9 11]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',2)
+end
+%
+xlabel('Time lag (ms)');
+ylabel('Filter Amplitude');
+axis square;
+title('Direction');
+box off;
+saveas(gcf,[experiment,'linfilt_dir.fig'])
+save([experiment,'_linfilt_dir.mat'],'linfilt_dir','pairs')
+
+
+
+%%
+% amp_filter=abs(amp_filter);
+% subplot(1,2,2);
+% 
+% id1=[1];
+% color=[0 0 1; 0 1 0];
+% for i=1:length(id1)
+%     errorbar(m_stdsti(:,id1(i)),amp_filter(:,id1(i)),std_filter(:,id1(i)),'Color',color(i,:));
+%     hold on;
+% end
+% legend('dir45','dir-45')
+% set(gca,'FontSize',16,'Box','Off','TickDir','Out');
+% xlabel('std of stimulus (deg)');
+% ylabel('Filter Amplitude');
+% axis square;
+% box off;
+
+% speed linfilt
+skseg(:,1)=stimspk(:,3);
+stimseg(:,1)=stimspk(:,2);
+
+tnoise=cell(numtriTypes,1);
+spkcounts=cell(numtriTypes,1);
+sldspk=cell(numtriTypes,1);
+bin=20;
+nbin=1:(seg_dur-bin+1);
+
+for i=1:numtriTypes
+   j=1;
+        tnoise{i,j}=stimseg{i,j}';
+        
+        tmp=skseg{i,j}';
+        spkcounts{i,j}=zeros(size(tnoise{i,j}));
+        for k=1:size(tmp,2)
+            counts=tmp(:,k);
+            for tt=1:max(counts);
+	            spkcounts{i,j}(tt,k) = length(find(counts==tt));    
+            end	
+            for b=1:length(nbin)
+                tp=counts(counts>b);
+                tp=tp(tp<b+bin-1);
+                sldspk{i,j}(b,k)=length(tp);
+            end
+        end
+        
+end
+%
+for i=1:numtriTypes
+    j=1;
+        sldspk{i,j}=sldspk{i,j}.*1000./bin;
+end
+%
+
+
+%
+% shift =50;
+% shifts=[0 shift];
+% cutoff=30;
+% ft=250;
+% maxK=20;
+% pshift=1; 
+% lag=[1:ft];
+
+for i=1:numtriTypes
+    j=1;
+        temp=sldspk{i,j};
+        sldspk{i,j}=sldspk{i,j}-repmat(mean(sldspk{i,j},1),size(sldspk{1,1},1),1);
+        tnoise{i,j}=tnoise{i,j}-repmat(mean(tnoise{i,j},1),size(tnoise{1,1},1),1);
+end
+
+mycolor=colormap;
+clear linfilt_results eye_est index2_list residuals cceof error
+
+amp_filter=zeros(numtriTypes,1); 
+std_filter=zeros(numtriTypes,1);
+m_stdsti=zeros(numtriTypes,1);
+figure;
+colors=distinguishable_colors(numtriTypes);
+%
+for i=1:numtriTypes
+    legcell{i}=[sprintf('%2.2f',stdlev(i,1)),' deg / ',sprintf('%2.2f',stdlev(i,2)),' dps'];
+end
+%
+trinums=[1:4];
+
+for i=trinums
+    hold on;
+%     subplot(1,2,1);
+     j=1;
+        stim=tnoise{i,j}(bin:end,:); %(1:end-bin+1,:);
+        spk=sldspk{i,j};
+        [filtspd, eye_est, index2_list, residuals, ccoef, error]=fget_linfilt(stim,spk,shift,ft,cutoff,maxK);
+%         myidx=1:2;  %=find(ccoef.allt(pshift,:)>=0.01);
+%         if isempty(myidx)
+%             if i==numtriTypes
+%                 break;
+%             end
+%             continue;
+%         end
+%         myfilter=[filtspd(pshift,myidx).filter_allt]*1000;
+%         [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+%        
+%         tmpp=std(myfilter');
+%         if length(myidx)>1
+%            std_filter(j,i)=tmpp(tempt);
+%         end
+%            m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+%            errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:)); 
+%            hold on; 
+       
+        linfilt_spd(i,j).results=filtspd;
+        linfilt_spd(i,j).eyeest=eye_est;
+        linfilt_spd(i,j).index2=index2_list;
+        linfilt_spd(i,j).residuals=residuals;
+        linfilt_spd(i,j).ccoef=ccoef;
+        linfilt_spd(i,j).error=error;
+        linfilt_spd(i,j).idx=myidx;
+%         filter(i,j).coef=mean(ccoef.allt(pshift,myidx));
+end
+    set(gca,'FontSize',16,'Box','Off','TickDir','Out');
+    xlim([-50 250]);
+%     legend(['20 deg ccoef: ',num2str(filter(1).coef)],['60 deg ccoef: ',num2str(filter(2).coef)]);
+    %
+[legh,~,~,~]=legend(legcell); 
+legh=findobj(gcf,'Type','axes','Tag','legend');
+% set(legh,'Interpreter','none','Location','EastOutside','FontSize',14)
+lc=get(legh,'Children');
+for i=[1 3 5 7]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+%
+    xlabel('Time lag (ms)');
+    ylabel('Filter Amplitude (1/s)');
+    axis square;
+    title('Speed');
+    box off;
+    %
+saveas(gcf,[experiment,'linfilt_spd.fig'])
+save([experiment,'_linfilt_spd.mat'],'linfilt_spd','pairs','stdlev')
+
+%% to replot separately
+
+h1=figure;
+subplot 221
+hold all
+numtriTypes=size(pairs,1);
+pshift=1; 
+ft=250;
+lag=[1:ft];
+colors=distinguishable_colors(numtriTypes);
+inds=[1,4]
+j=1;
+for i=1:numtriTypes
+    legcell{i}=[sprintf('%2.0f',stdlev(i,1)),' deg / ',sprintf('%2.0f',stdlev(i,2)),' dps'];
+end
+
+for i=inds
+    myfilter=[linfilt_dir(i).results(pshift,:).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+title('Direction Filters','FontSize',18)
+
+subplot 223
+hold all
+inds=[3,2];
+for i=inds
+    myfilter=[linfilt_dir(i).results(pshift,:).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+ylabel('Filter Amplitude (spikes/s ^2deg)','FontSize',18)
+
+xlabel('Time Lag (ms)','FontSize',16)
+
+figure(h1);
+subplot 222
+hold all
+colors=distinguishable_colors(numtriTypes);
+inds=[1,3];
+for i=inds
+    myfilter=[linfilt_spd(i).results(pshift,:).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+title('Speed Filters','FontSize',18)
+
+
+subplot 224
+hold all
+inds=[4,2];
+for i=inds
+    myfilter=[linfilt_spd(i).results(pshift,:).filter_allt]*1000;
+    [amp_filter(j,i) tempt]=min(mean(myfilter,2));
+    tmpp=std(myfilter');
+%     if length(myidx)>1
+%         std_filter(j,i)=tmpp(tempt);
+%     end
+%     m_stdsti(j,i)=mean(std(stimseg{i,j}'));
+    errorbar(lag,mean(myfilter(lag,:),2),std(myfilter(lag,:),[],2),'Color',colors(i,:));
+end
+legh=legend(legcell{inds});
+lc=get(legh,'Children');
+set(legh,'Location','SouthEast','FontSize',14)
+for i=[1 3]
+    ts=get(get(lc(i),'Children'),'Children');
+    set(ts(2),'LineWidth',3)
+end
+ylabel('Filter Amplitude (spikes/s-deg)','FontSize',18)
+xlabel('Time Lag (ms)','FontSize',16)
+saveas(gcf,[experiment,'linfilt_dirspd_sep.fig'])

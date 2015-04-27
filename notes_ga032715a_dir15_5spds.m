@@ -396,7 +396,8 @@ for dir=1:numdirs
         spk_cumct{dir,spd}=cumsum(spk_tp{dir,spd});
     end
 end
-
+figure;imagesc(trialdirs_rot,spds,spk_ct_mean');colormap('jet');colorbar
+set(gca,'YTick',[5 20 35 50 65],'YTickLabel',spds)
 
 figure;hold all
 for i=1:5
