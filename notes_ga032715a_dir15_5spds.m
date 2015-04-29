@@ -264,9 +264,9 @@ end
 %get mean nstimdir and mean nstimspd to check
 %primary cell: unit 2
 
-for neuron_idx=2:2
-%secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
-% neuron_idx=1;
+% for neuron_idx=2:2
+%% secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
+neuron_idx=2;
 
 spikes=nexFile.neurons{neuron_idx}.timestamps;
 %
@@ -364,7 +364,7 @@ end
 numdirs=size(spk_nf,1);
 trialdirs_rot(1:5)=trialdirs(1:5)-360;
 trialdirs_rot(6:12)=trialdirs(6:12);
-
+%
 mycolor=colormap(hsv);
 % for spd=1:size(spk_nf,2);   
 %     figure;
@@ -378,7 +378,7 @@ mycolor=colormap(hsv);
 %         end     
 % 
 %     end
-%     xlim([0 tt+300])
+%     xlim([0 tt])
 %     ylim([-180 180])
 %     set(gca,'YTick',-180:45:180,'YTickLabel',-180:45:180)
 % end
@@ -396,9 +396,20 @@ for dir=1:numdirs
         spk_cumct{dir,spd}=cumsum(spk_tp{dir,spd});
     end
 end
-figure;imagesc(trialdirs_rot,spds,spk_ct_mean');colormap('jet');colorbar
-set(gca,'YTick',[5 20 35 50 65],'YTickLabel',spds)
 
+spk_ct_mean_exp(:,1:5)=repmat(spk_ct_mean(1,:)',1,5);
+spk_ct_mean_exp(:,6:8)=repmat(spk_ct_mean(2,:)',1,3);
+spk_ct_mean_exp(:,9:15)=spk_ct_mean(3:9,:)';
+spk_ct_mean_exp(:,16:18)=repmat(spk_ct_mean(10,:)',1,3);
+spk_ct_mean_exp(:,19:23)=repmat(spk_ct_mean(11,:)',1,5);
+spk_ct_mean_exp(:,24)=spk_ct_mean(12,:)';
+
+figure;imagesc(trialdirs_rot,spds,spk_ct_mean_exp);colormap('jet');colorbar
+
+set(gca,'YTick',[5 20 35 50 65],'YTickLabel',spds,'XTick',[-95 -40 15 70 125 180],'XTickLabel',[-120 -60 0 60 120 180],'FontSize',16)
+ylabel('Speed (dps)','FontSize',16)
+xlabel('Direction (deg)','FontSize',16)
+%
 figure;hold all
 for i=1:5
     plot(trialdirs_rot,spk_ct_mean(:,i))%./max(max(spk_ct_mean)))
@@ -1166,7 +1177,7 @@ set(th,'FontSize',15)
 
 saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint separated.fig'])
 end %for count vs. isi loop
-end %for neuron loop
+% end %for neuron loop
 
  %% stimulus-specific info from butts/goldman 2006 and mutual info of dir and spkct
 % timebin=20;
