@@ -466,8 +466,8 @@ for i=1:numtriTypes
     end
 end
 save([experiment,'_stimspk.mat'],'stimspk','stdlev')
-% blorp
-% dirspd_sta
+dirspd_sta
+blorp
 
 
 %

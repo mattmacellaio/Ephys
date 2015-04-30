@@ -45,12 +45,12 @@ for i=1:length(stimarray_dir)
         stimarray_dir(i)=stimarray_dir(i)+180;
     end
 end
-nBins=60;
-[h, binc_spd]=hist(stimarray_spd,nBins);
-binsize_spd=binc_spd(2)-binc_spd(1);
-%
-[h,binc_dir]=hist(stimarray_dir,nBins);
-binsize_dir=binc_dir(2)-binc_dir(1);
+% nBins=60;
+% [h, binc_spd]=hist(stimarray_spd,nBins);
+% binsize_spd=binc_spd(2)-binc_spd(1);
+% %
+% [h,binc_dir]=hist(stimarray_dir,nBins);
+% binsize_dir=binc_dir(2)-binc_dir(1);
 %%
         
 tic
@@ -72,15 +72,22 @@ for i=1:numtriTypes
             stim{1,2}=[stim{1,2};stimtrain_spd{1,tr}(:,(seg-1)*seg_dur+1:seg*seg_dur)];
         end
     end
+    nBins=60;
+    [hspd(i,:), binc_spd(i,:)]=hist(stim{1,2},nBins);
+    binsize_spd=binc_spd(i,2)-binc_spd(i,1);
+    %
+    [hdir(i,:),binc_dir(i,:)]=hist(stim{1,1},nBins);
+    binsize_dir=binc_dir(i,2)-binc_dir(i,1);
+    
     stim2d=zeros(nBins,nBins,size(stim{1,2},1),size(stim{1,2},2));
     for tr=1:size(stim{1,2},1)
         for hs=1:nBins
-            inds1=find(stim{1,2}(tr,:)<binc_spd(hs)+binsize_spd/2);
-            inds2=find(stim{1,2}(tr,:)>binc_spd(hs)-binsize_spd/2);
+            inds1=find(stim{1,2}(tr,:)<binc_spd(i,hs)+binsize_spd/2);
+            inds2=find(stim{1,2}(tr,:)>binc_spd(i,hs)-binsize_spd/2);
             inds_spd=intersect(inds1,inds2);
             for hd=1:nBins
-                inds1=find(stim{1,1}(tr,:)<binc_dir(hd)+binsize_dir/2);
-                inds2=find(stim{1,1}(tr,:)>binc_dir(hd)-binsize_dir/2);
+                inds1=find(stim{1,1}(tr,:)<binc_dir(i,hd)+binsize_dir/2);
+                inds2=find(stim{1,1}(tr,:)>binc_dir(i,hd)-binsize_dir/2);
                 inds_dir=intersect(inds1,inds2);
                 inds_ds=intersect(inds_dir,inds_spd);
     %             [inds_r,inds_c]=ind2sub(size(stimspk{i,1}),inds_ds);
@@ -156,12 +163,12 @@ clear stim
 %     j
 % end
 clearvars -except pairs sta binc_dir binc_spd experiment
-save([experiment,'_STA.mat'],'stdlev','sta','binc_dir','binc_spd','pairs','-v7.3')
+save([experiment,'_STA.mat'],'stdlev','sta','binc_dir','binc_spd','hdir','hspd','pairs','-v7.3')
 
 
 
 %% if just loading sta
-load([experiment,'_linfilt_spd.mat'],'stdlev')
+% load([experiment,'_linfilt_spd.mat'],'stdlev')
 lags=[-199:200];
 numtriTypes=size(sta,5);
 numBins=size(sta,1);
@@ -241,8 +248,12 @@ for tt=1:8
     else
         tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
     end
-    title(tstr)
-    for i=51:5:171    
+%     title(tstr)
+    writerObj=VideoWriter(['ga031015strf_',pairs{tt,1},'.avi']);
+    set(writerObj,'FrameRate',30,'Quality',100)
+    open(writerObj)
+    for i=50:1:200  
+        ct=i-50;
         normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4)./max(max(max(sta(:,:,:,:,tt),[],3),[],2));
 %         diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
 
@@ -250,16 +261,22 @@ for tt=1:8
 %         subplot(2,4,tt)
 %         diffsta=normsta(:,:,t(1),tt)'-normsta(:,:,t(2),tt)';
 %         imagesc(binc_dir,binc_spd,diffsta)
+        normsta(60,60,i,tt)=1;
 
-        imagesc(binc_dir(1:47),binc_spd(8:50),(normsta(1:47,8:50,i,tt)'))
-        
+        imagesc(binc_dir(1:47),binc_spd(8:50),(fliplr(normsta(1:47,8:50,i,tt)')))
+        caxis([0 0.85])
 %         title([num2str(abs(lags(t(i)))),'ms pre-spike'])
         colorbar
-        title(tstr)
-%         title(lags(i))
+%         title(tstr)
+        title(sprintf('%2.0f',lags(i)),'FontSize',16)
+        ylabel('Speed','FontSize',16)
+        xlabel('Direction','FontSize',16)
+        F=getframe(gcf);
+        writeVideo(writerObj,F);
         pause(0.01)
+
     end
-    
+    close(writerObj)
 end
 %%   suptitle(tstr)
 figure;
@@ -274,6 +291,7 @@ for tt=1:numtriTypes
         subplot(2,4,tt)
         
         diffsta=normsta(:,:,t(2),tt)'-normsta(:,:,t(1),tt)';
+        diffsta(end,end)
         imagesc(fliplr(binc_dir(1:47)),binc_spd(8:50),(diffsta(8:50,1:47)))
         if tt==1||tt==5
             ylabel('Speed (dps)','FontSize',16)
@@ -281,7 +299,7 @@ for tt=1:numtriTypes
         if tt==5||tt==6||tt==7||tt==8
             xlabel('Direction (deg)','FontSize',16)
         end
-        
+
             
 %         imagesc(binc_dir,binc_spd,normsta(:,:,t(i),tt)')
 
