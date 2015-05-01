@@ -1,7 +1,7 @@
 % sta over time
 % sandbox for direction-speed STA
 % load notevars.mat
-clearvars -except experiment pairs stimtrain_dir spktri stimtrain_spd nstimdir nstimspd seg_dur nTypes numtriTypes 
+clearvars -except sta experiment pairs stimtrain_dir spktri stimtrain_spd nstimdir nstimspd seg_dur nTypes numtriTypes 
 % for varpair=1:size(pairs,1)/2
 
 % 
@@ -51,16 +51,19 @@ end
 % %
 % [h,binc_dir]=hist(stimarray_dir,nBins);
 % binsize_dir=binc_dir(2)-binc_dir(1);
-%%
+%
         
 tic
 rep=1;
-tL=400;
+tL=400;    
+nBins=60;
+
 sta=zeros(nBins,nBins,tL,rep,numtriTypes);
 STA=zeros(nBins,nBins,tL,rep);
 STC=zeros(nBins,nBins,tL,rep);
 
-%
+%%
+h_joint=zeros(nBins,nBins,500,numtriTypes);
 for i=1:numtriTypes
     i
     stim=cell(1,2);
@@ -72,11 +75,10 @@ for i=1:numtriTypes
             stim{1,2}=[stim{1,2};stimtrain_spd{1,tr}(:,(seg-1)*seg_dur+1:seg*seg_dur)];
         end
     end
-    nBins=60;
-    [hspd(i,:), binc_spd(i,:)]=hist(stim{1,2},nBins);
+    [hspd(i,:), binc_spd(i,:)]=hist(reshape(stim{1,2},1,[]),nBins);
     binsize_spd=binc_spd(i,2)-binc_spd(i,1);
     %
-    [hdir(i,:),binc_dir(i,:)]=hist(stim{1,1},nBins);
+    [hdir(i,:),binc_dir(i,:)]=hist(reshape(stim{1,1},1,[]),nBins);
     binsize_dir=binc_dir(i,2)-binc_dir(i,1);
     
     stim2d=zeros(nBins,nBins,size(stim{1,2},1),size(stim{1,2},2));
@@ -90,33 +92,36 @@ for i=1:numtriTypes
                 inds2=find(stim{1,1}(tr,:)>binc_dir(i,hd)-binsize_dir/2);
                 inds_dir=intersect(inds1,inds2);
                 inds_ds=intersect(inds_dir,inds_spd);
-    %             [inds_r,inds_c]=ind2sub(size(stimspk{i,1}),inds_ds);
-                stim2d(hd,hs,tr,inds_ds)=1;
+                h_joint(hd,hs,inds_ds,i)=h_joint(hd,hs,inds_ds,i)+1;
+                [inds_r,inds_c]=ind2sub(size(stimspk{i,1}),inds_ds);
+%                 stim2d(hd,hs,tr,inds_ds)=1;
             end     
         end
     end
-    
-    spkseg_tmp=[];
-    for trI=1:size(pairs{i,2},2)            %trialtype index
-        tr=pairs{i,2}(trI);                 %trialtype
-        for segI=1:size(pairs{i,3}{trI},2)  %segment index
-            seg=pairs{i,3}{trI}(segI);      %segment
-            spkseg_tmp=[spkseg_tmp,spktri{1,tr}(seg,:)];
-        end
-    end
-    
-    ntr=size(spkseg_tmp,2);
-    for k=1:ntr
-        spk{1,i}(k,1:length(spkseg_tmp{k}))=round(spkseg_tmp{k});
-    end
-    
-    for rp=1:rep
-        ntri=size(spk{1,i},1);
-        index=randperm(ntri);
-        ind_use=index(1:round(0.8*length(index)));       
-        [sta1,STA1,STC1] = get_2sta(spk{1,i}(ind_use,:), stim2d(:,:,ind_use,:));
-        sta(:,:,:,rp,i)=-sta1;
-    end
+    h_joint_ps(:,:,i)=squeeze(sum(h_joint(:,:,:,i),3));
+    h_joint_ps(:,:,i)=h_joint_ps(:,:,i)./sum(sum(h_joint_ps(:,:,i)));
+%     
+%     spkseg_tmp=[];
+%     for trI=1:size(pairs{i,2},2)            %trialtype index
+%         tr=pairs{i,2}(trI);                 %trialtype
+%         for segI=1:size(pairs{i,3}{trI},2)  %segment index
+%             seg=pairs{i,3}{trI}(segI);      %segment
+%             spkseg_tmp=[spkseg_tmp,spktri{1,tr}(seg,:)];
+%         end
+%     end
+%     
+%     ntr=size(spkseg_tmp,2);
+%     for k=1:ntr
+%         spk{1,i}(k,1:length(spkseg_tmp{k}))=round(spkseg_tmp{k});
+%     end
+%     
+%     for rp=1:rep
+%         ntri=size(spk{1,i},1);
+%         index=randperm(ntri);
+%         ind_use=index(1:round(0.8*length(index)));       
+%         [sta1,STA1,STC1] = get_2sta(spk{1,i}(ind_use,:), stim2d(:,:,ind_use,:));
+% %         sta(:,:,:,rp,i)=-sta1;
+%     end
 end
 toc
 clear stim
@@ -162,8 +167,9 @@ clear stim
 %     end
 %     j
 % end
-clearvars -except pairs sta binc_dir binc_spd experiment
-save([experiment,'_STA.mat'],'stdlev','sta','binc_dir','binc_spd','hdir','hspd','pairs','-v7.3')
+% clearvars -except pairs sta binc_dir binc_spd experiment
+save([experiment,'_STA.mat'],'experiment','h_joint','h_joint_ps','sta','pairs','binc_dir','binc_spd','-v7.3')
+% save([experiment,'_STA.mat'],'h_joint','-append')
 
 
 
@@ -174,13 +180,14 @@ numtriTypes=size(sta,5);
 numBins=size(sta,1);
 maxsta=squeeze(max(max(max(mean(sta,4),[],3),[],2)));
 minsta=squeeze(min(min(min(mean(sta,4),[],3),[],2)));
-tsd=repmat(binc_dir',1,numBins);
-tss=repmat(binc_spd,numBins,1);
+
 colors=distinguishable_colors(8);
 h1=figure;
 h2=figure;
 h3=figure;
 for i=1:numtriTypes
+    tsd=repmat(binc_dir(i,:)',1,numBins);
+    tss=repmat(binc_spd(i,:),numBins,1);
     for t=1:size(sta,3)
         sta_spd_exp(:,t,i)=sum(sta(:,:,t,1,i).*tss,1);
         sta_dir_exp(:,t,i)=sum(sta(:,:,t,1,i).*tsd,2);
@@ -199,13 +206,13 @@ for i=1:numtriTypes
 %     end
     figure(h1);
     subplot(numtriTypes/2,2,i)
-    imagesc(lags,binc_dir,sta_dir_exp(:,:,i))
+    imagesc(lags,binc_dir(i,:),sta_dir_exp(:,:,i))
     xlabel('time');ylabel('direction')
     colorbar
     title(pairs{i,1},'Interpreter','none')
     figure(h2);
     subplot(numtriTypes/2,2,i)
-    imagesc(lags,binc_spd,sta_spd_exp(:,:,i))
+    imagesc(lags,binc_spd(i,:),sta_spd_exp(:,:,i))
     colorbar
     title(pairs{i,1},'Interpreter','none')
     xlabel('time');ylabel('speed')
@@ -237,46 +244,50 @@ xlabel('time');ylabel('speed')
     %
 %% for t=4
     figure;
-%
+lags=[-199:200];
+numtriTypes=size(sta,5);
 for tt=1:8
-%     t=[-105 -65];
-%     t=t+200;
-    if tt==1||tt==2
-        tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ','no speed variance'];
-    elseif tt==3||tt==4
-        tstr=['no direction variance / SD ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
-    else
-        tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
+%     if tt==1||tt==2
+%         tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ','no speed variance'];
+%     elseif tt==3||tt==4
+%         tstr=['no direction variance / SD ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
+%     else
+%         tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
+%     end
+%     writerObj=VideoWriter(['ga031015strf_',pairs{tt,1},'.avi']);
+%     set(writerObj,'FrameRate',30,'Quality',100)
+%     open(writerObj)
+    normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4);%./max(max(max(sta(:,:,:,:,tt),[],3),[],2));
+    for i=1:400
+        normsta(:,:,i,tt)=normsta(:,:,i,tt).*h_joint_ps(:,:,tt);
     end
-%     title(tstr)
-    writerObj=VideoWriter(['ga031015strf_',pairs{tt,1},'.avi']);
-    set(writerObj,'FrameRate',30,'Quality',100)
-    open(writerObj)
-    for i=50:1:200  
-        ct=i-50;
-        normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4)./max(max(max(sta(:,:,:,:,tt),[],3),[],2));
-%         diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
+    normsta(:,:,:,tt)=normsta(:,:,:,tt)./squeeze(max(max(max(normsta(:,:,:,tt)))));
 
+    for i=50:10:200  
+%                ct=i-50;
+ diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
+        
 %         imagesc(binc_spd,binc_dir,diffsta./max(max(diffsta)))
 %         subplot(2,4,tt)
 %         diffsta=normsta(:,:,t(1),tt)'-normsta(:,:,t(2),tt)';
 %         imagesc(binc_dir,binc_spd,diffsta)
-        normsta(60,60,i,tt)=1;
 
-        imagesc(binc_dir(1:47),binc_spd(8:50),(fliplr(normsta(1:47,8:50,i,tt)')))
-        caxis([0 0.85])
+%         normsta(60,60,i,tt)=1; %add this to normalize all to 1
+
+        imagesc(binc_dir(tt,:),binc_spd(tt,:),(fliplr(normsta(:,:,i,tt)')))
+        caxis([0 0.7])
 %         title([num2str(abs(lags(t(i)))),'ms pre-spike'])
         colorbar
 %         title(tstr)
         title(sprintf('%2.0f',lags(i)),'FontSize',16)
         ylabel('Speed','FontSize',16)
         xlabel('Direction','FontSize',16)
-        F=getframe(gcf);
-        writeVideo(writerObj,F);
+%         F=getframe(gcf);
+%         writeVideo(writerObj,F);
         pause(0.01)
 
     end
-    close(writerObj)
+%     close(writerObj)
 end
 %%   suptitle(tstr)
 figure;

@@ -328,7 +328,7 @@ for d=1:length(trialdirs)
         end
     end
 end
-%
+%%
 % spk_pt=cell(size(trialdirs,2),size(spds,2));
 % for d=1:length(trialdirs)
 %     for s=1:length(spds)
@@ -383,10 +383,10 @@ mycolor=colormap(hsv);
 %     set(gca,'YTick',-180:45:180,'YTickLabel',-180:45:180)
 % end
 %
-% % tuning curves
+% tuning curves
 numdirs=size(spk_tp,1);
 numspds=size(spk_tp,2);
-
+%
 for dir=1:numdirs
     for spd=1:numspds
         for trial=1:size(spk_nf{dir,spd})
@@ -406,9 +406,11 @@ spk_ct_mean_exp(:,24)=spk_ct_mean(12,:)';
 
 figure;imagesc(trialdirs_rot,spds,spk_ct_mean_exp);colormap('jet');colorbar
 
+
 set(gca,'YTick',[5 20 35 50 65],'YTickLabel',spds,'XTick',[-95 -40 15 70 125 180],'XTickLabel',[-120 -60 0 60 120 180],'FontSize',16)
 ylabel('Speed (dps)','FontSize',16)
 xlabel('Direction (deg)','FontSize',16)
+saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_2dtune.fig'])
 %
 figure;hold all
 for i=1:5
@@ -427,24 +429,34 @@ set(gca,'XTick',[2 4 8 16 32 64],'XTickLabel',[2 4 8 16 32 64])
 legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside')
 saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_spdtune.fig'])
 
-% bin
+%% bin
 binsize=20;
-% 
+
+figure 
 for dir=1:numdirs
     for spd=1:numspds
         for trial=1:size(spk_tp{dir,spd},1)
             for t=1:size(spk_tp{dir,spd},2)-binsize
 %             bint=(t-1)*binsize+1;
-                ct_bin{dir,spd}(trial,t)=sum(spk_tp{dir,spd}(trial,t:t+binsize)); %/200ms*1000ms=spks/s
+                ct_bin{dir,spd}(trial,t)=sum(spk_tp{dir,spd}(trial,t:t+binsize))*5; %/200ms*1000ms=spks/s
             end
             isi{dir,spd}{trial,1}=spk_nf{dir,spd}{trial}(2:end)-spk_nf{dir,spd}{trial}(1:end-1);
         end
-      cumct_bin{dir,spd}=cumsum(spk_tp{dir,spd},2);  
-%     plot(mean(fr_bin{dir,spd},1));
+%       cumct_bin{dir,spd}=cumsum(spk_tp{dir,spd},2);  
 %     hold all
     end
 end
 %
+for dir=1:numdirs
+    plot([21:400],mean(ct_bin{dir,4},1),'Color',colors(dir,:),'LineWidth',1.5);hold all
+end
+
+set(gca,'FontSize',18')
+ylabel('Firing Rate (spikes/s)','FontSize',18)
+xlabel('Time (ms)','FontSize',18)
+legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside')
+
+%%
 kind=2;
 
 if kind==1
@@ -768,6 +780,11 @@ I_dirspd_joint_shuffle=Iinf_shuffle;
 %
 
 save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_dirspd_joint.mat'],'I_dirspd_joint','I_dirspd_joint_shuffle')
+%%
+% %for binct
+tShift=20;
+% %for cumct
+% tShift=0;
 
 h=figure;
 % load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'])
@@ -776,7 +793,7 @@ hold on
 errorbar([1:length(I_dirspd_joint_shuffle)]+tShift,I_dirspd_joint_shuffle(:,2),I_dirspd_joint_shuffle(:,3),'Color',[0.5 0.5 0.5]);
 
 load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_combined.mat'],'I_dir_xspd','I_spd_xdir')
-errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2),I_dir_xspd(:,3),'r');
+errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2),I_dir_xspd(:,3),'r');hold all
 errorbar([1:length(I_spd_xdir)]+tShift,I_spd_xdir(:,2),I_spd_xdir(:,3),'b');
 errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2)+I_spd_xdir(:,2),mean([I_dir_xspd(:,3),I_spd_xdir(:,3)],2),'Color',[1, 0.1034,0.7241]); %purple
 [legh,objh,~,~]=legend('I((\theta,v),r)','I(\theta,v),r) shuffled','I(\theta,r), all v','I(v,r), all \theta','\Sigma I(\theta,r) I(v,r)');
@@ -788,12 +805,18 @@ for i=[1 3 5 7 9]
     ts=get(get(lc(i),'Children'),'Children');
     set(ts(2),'LineWidth',3)
 end
+
 set(gca,'FontSize',18)
 xlim([-50 450])
+ylim([-0.2 1.5])
+ylabel('Information from binned spike count (bits)','FontSize',18)
 
-ylabel('Information from binned spike count (bits)','FontSize',12)
+% ylim([-0.2 2.5])
+% ylabel('Information from cumulative spike count (bits)','FontSize',18)
+xlabel('Time (ms)')
 yh=findobj(gcf,'Type','axes','Tag','ylabel');
 set(yh,'FontSize',18)
+
 tag='';
 title([' Unit ', num2str(neuron_idx),tag],'Interpreter','none','FontSize',14)
 saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint together.fig'])

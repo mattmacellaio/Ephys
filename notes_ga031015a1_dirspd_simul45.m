@@ -425,7 +425,7 @@ for j=1:12
 end
 
 
-%%
+%
 % spklag=55; %-10 to get 20ms bin surrounding peak at 65
 % 
 % for j=1:12
@@ -436,7 +436,7 @@ end
 %         gain(j,t)=p(1);
 %     end
 % end
-%% sandbox for direction-speed STA
+% sandbox for direction-speed STA
 pairs=[{'dirL_nospd'},{[1 6]},{{[2,3],[1]}};{'dirH_nospd'},{[1 6]},{{[1],[2,3]}};...
         {'spdL_nodir'},{[2 7]},{{[2,3],[1]}};{'spdH_nodir'},{[2 7]},{{[1],[2,3]}};...
         {'dirL_spdL'},{[3 9 10 11 12]},{{[3],[2],[2],[3],[2]}};{'dirH_spdH'},{[3 9]},{{[2],[3]}};... %  {'dirL_spdL'},{[3 5 9 10 11 12]},{{[3],[3],[2],[2],[3],[2]}}
@@ -465,7 +465,7 @@ for i=1:numtriTypes
         stimspk{i,3}(k,1:length(spkseg_tmp{k}))=round(spkseg_tmp{k});
     end
 end
-save([experiment,'_stimspk.mat'],'stimspk','stdlev')
+% save([experiment,'_stimspk.mat'],'stimspk','stdlev')
 dirspd_sta
 blorp
 
