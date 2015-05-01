@@ -243,10 +243,11 @@ xlabel('time');ylabel('speed')
 
     %
 %% for t=4
-    figure;
+%     figure;
 lags=[-199:200];
 numtriTypes=size(sta,5);
-for tt=1:8
+for tt=[6]
+    cm=input('max');
 %     if tt==1||tt==2
 %         tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ','no speed variance'];
 %     elseif tt==3||tt==4
@@ -255,17 +256,17 @@ for tt=1:8
 %         tstr=['SD',sprintf('%2.0f',stdlev(tt,1)),' deg / ',sprintf('%2.0f',stdlev(tt,2)),' dps'];
 %     end
 %     writerObj=VideoWriter(['ga031015strf_',pairs{tt,1},'.avi']);
-%     set(writerObj,'FrameRate',30,'Quality',100)
+%     set(writerObj,'FrameRate',15,'Quality',100)
 %     open(writerObj)
-    normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4);%./max(max(max(sta(:,:,:,:,tt),[],3),[],2));
-    for i=1:400
-        normsta(:,:,i,tt)=normsta(:,:,i,tt).*h_joint_ps(:,:,tt);
-    end
-    normsta(:,:,:,tt)=normsta(:,:,:,tt)./squeeze(max(max(max(normsta(:,:,:,tt)))));
+    normsta(:,:,:,tt)=mean(sta(:,:,:,:,tt),4)./max(max(max(sta(:,:,:,:,tt),[],3),[],2));
+%     for i=1:400
+%         normsta(:,:,i,tt)=normsta(:,:,i,tt).*h_joint_ps(:,:,tt);
+%     end
+%     normsta(:,:,:,tt)=normsta(:,:,:,tt)./squeeze(max(max(max(normsta(:,:,:,tt)))));
 
-    for i=50:10:200  
+    for i=50:1:200  
 %                ct=i-50;
- diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
+%         diffsta=normsta(:,:,i,tt)'-normsta(:,:,200,tt)';
         
 %         imagesc(binc_spd,binc_dir,diffsta./max(max(diffsta)))
 %         subplot(2,4,tt)
@@ -273,9 +274,13 @@ for tt=1:8
 %         imagesc(binc_dir,binc_spd,diffsta)
 
 %         normsta(60,60,i,tt)=1; %add this to normalize all to 1
+%for different bins for each stim
+%         imagesc(binc_dir(tt,:),binc_spd(tt,:),(fliplr(normsta(:,:,i,tt)')))
+        normsta_n(:,:,i,tt)=normsta(:,:,i,tt)./sum(sum(normsta(:,:,i,tt)));
+        imagesc(binc_dir(1:47),binc_spd(8:50),(fliplr(normsta_n(1:47,8:50,i,tt)')))
+%                 imagesc(fliplr(binc_dir),binc_spd(8:50),(diffsta(8:50,1:47)))
 
-        imagesc(binc_dir(tt,:),binc_spd(tt,:),(fliplr(normsta(:,:,i,tt)')))
-        caxis([0 0.7])
+        caxis([0 cm])
 %         title([num2str(abs(lags(t(i)))),'ms pre-spike'])
         colorbar
 %         title(tstr)
