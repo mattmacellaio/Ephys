@@ -2,14 +2,18 @@ clear all;
 
 if ispc
     rt='Z:/';
-else
+elseif ismac
     rt='/Volumes/Hub/';
+else
+    rt='/Hub/';
 end
+
 path(path,[rt,'MT/MATLAB/bing_ana']);
+path(path,[rt,'MT/MATLAB']);
 path(path,[rt,'RMVideo_backup']);
 trialsdir=[rt,'MT/Data/ga032715/maestro'];
 savedir=[rt,'MT/Data/ga032715/mat/'];
-experiment='ga032714a_dir15_5spds'; %yes I screwed this date up in recording
+experiment='ga032715a_dir15_5spds'; %I screwed this date up in recording so maestro files are named ga032714
 
 first=1;
 last=1944;
@@ -28,12 +32,12 @@ seg_dur=400;  % important if we change the length of the stimulus.
 tdur=6*seg_dur; %-250 to remove transient at beginning
 
 nTypes = size(data,1);
-nTags = 1;            % we should have 4 tags ??
+nTags = 1;            % ??
 nSegs = 0;
 nstimdir=[];
 stdpdir = []; 
 spikearray=[]; 
-spiketimes = cell(nTypes*nTags,1);
+% spiketimes = cell(nTypes*nTags,1);
 nSegs=0;
 for i=1:nTypes
     temp = data(i,1);
@@ -51,7 +55,7 @@ segdata.nfiles = zeros(1,nTypes);
 tagval=[]; %tagvals identifies the trial condition for all segments within trials (so nTypes*nSegs*nReps long);
 count=0;
 
-for i=[1:nTypes] %skip dir045_HTL_LTL for now: too many issues with putting short pert seg in matrices
+for i=[1:nTypes] 
         clear ptemp stemp;
         temp = data(i,1);
         tempdir = [temp.targ.patdir];
@@ -264,9 +268,10 @@ end
 %get mean nstimdir and mean nstimspd to check
 %primary cell: unit 2
 
-% for neuron_idx=2:2
-%% secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
-neuron_idx=2;
+ for neuron_idx=1:2
+
+%secondary cell: unit 1 spikes safely iso'd and extracted from trial ~500-700 to end
+% neuron_idx=1;
 
 spikes=nexFile.neurons{neuron_idx}.timestamps;
 %
@@ -299,15 +304,18 @@ end
         %
 spk_nf=cell(length(trialdirs),length(spds));
 tri_type=ceil(tri_num/5);
-
+class_id=[];
 for i=1:length(tri_num)
     for j=1:size(spk_tr,1); %for each seg
         spdind=trispdind(i);
         triind=tri_type(i);
         spk_nf{segdirinds{triind}(j),spdind}=[spk_nf{segdirinds{triind}(j),spdind}; {spk_tr{j,i}}];
+        class_id(end+1)=sub2ind([length(trialdirs),length(spds)],segdirinds{triind}(j),spdind);
+        spiketimes{length(class_id)}=spk_tr{j,i}';
     end
 end
-
+%
+wavelet_info
 tt=400;
 spk_tp=cell(size(trialdirs,2),size(spds,2));
 %
@@ -328,7 +336,13 @@ for d=1:length(trialdirs)
         end
     end
 end
-%%
+
+% %to shift responses to make cell non-separable
+% for i=1:size(spk_tp,2)
+%     spk_tp(:,i)=circshift(spk_tp(:,i),i);
+% end
+
+%
 % spk_pt=cell(size(trialdirs,2),size(spds,2));
 % for d=1:length(trialdirs)
 %     for s=1:length(spds)
@@ -364,7 +378,7 @@ end
 numdirs=size(spk_nf,1);
 trialdirs_rot(1:5)=trialdirs(1:5)-360;
 trialdirs_rot(6:12)=trialdirs(6:12);
-%
+
 mycolor=colormap(hsv);
 % for spd=1:size(spk_nf,2);   
 %     figure;
@@ -378,40 +392,32 @@ mycolor=colormap(hsv);
 %         end     
 % 
 %     end
-%     xlim([0 tt])
+%     xlim([0 tt+300])
 %     ylim([-180 180])
 %     set(gca,'YTick',-180:45:180,'YTickLabel',-180:45:180)
 % end
 %
-% tuning curves
+% % tuning curves
 numdirs=size(spk_tp,1);
 numspds=size(spk_tp,2);
-%
+
 for dir=1:numdirs
     for spd=1:numspds
-        for trial=1:size(spk_nf{dir,spd})
-            spkct{dir,spd}(trial)=length(spk_nf{dir,spd}{trial});
-        end
+%         for trial=1:size(spk_nf{dir,spd})
+%             spkct{dir,spd}(trial)=length(spk_nf{dir,spd}{trial});
+%         end
         spk_ct_mean(dir,spd)=mean(sum(spk_tp{dir,spd},2)); %cell of total spks per trial per dir/spd needed?
         spk_cumct{dir,spd}=cumsum(spk_tp{dir,spd});
     end
 end
-
-spk_ct_mean_exp(:,1:5)=repmat(spk_ct_mean(1,:)',1,5);
-spk_ct_mean_exp(:,6:8)=repmat(spk_ct_mean(2,:)',1,3);
-spk_ct_mean_exp(:,9:15)=spk_ct_mean(3:9,:)';
-spk_ct_mean_exp(:,16:18)=repmat(spk_ct_mean(10,:)',1,3);
-spk_ct_mean_exp(:,19:23)=repmat(spk_ct_mean(11,:)',1,5);
-spk_ct_mean_exp(:,24)=spk_ct_mean(12,:)';
-
-figure;imagesc(trialdirs_rot,spds,spk_ct_mean_exp);colormap('jet');colorbar
-
-
-set(gca,'YTick',[5 20 35 50 65],'YTickLabel',spds,'XTick',[-95 -40 15 70 125 180],'XTickLabel',[-120 -60 0 60 120 180],'FontSize',16)
-ylabel('Speed (dps)','FontSize',16)
-xlabel('Direction (deg)','FontSize',16)
-saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_2dtune.fig'])
+figure;imagesc(trialdirs_rot,spds,spk_ct_mean');colormap('jet');colorbar
+set(gca,'YTick',[5 20 35 50 65],'YTickLabel',spds)
+xlabel('Direction');ylabel('Speed')
+save([experiment,'_unit',num2str(neuron_idx),'_2dtunecurve.mat'],'spk_ct_mean');
 %
+saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_2dtunecurve.fig'])
+
+
 figure;hold all
 for i=1:5
     plot(trialdirs_rot,spk_ct_mean(:,i))%./max(max(spk_ct_mean)))
@@ -429,779 +435,60 @@ set(gca,'XTick',[2 4 8 16 32 64],'XTickLabel',[2 4 8 16 32 64])
 legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside')
 saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_spdtune.fig'])
 
-%% bin
+% bin
 binsize=20;
+% 
+isi=cell(numdirs,numspds);
+ct_bin=cell(numdirs,numspds);
+cumct_bin=cell(numdirs,numspds);
 
-figure 
 for dir=1:numdirs
     for spd=1:numspds
         for trial=1:size(spk_tp{dir,spd},1)
             for t=1:size(spk_tp{dir,spd},2)-binsize
 %             bint=(t-1)*binsize+1;
-                ct_bin{dir,spd}(trial,t)=sum(spk_tp{dir,spd}(trial,t:t+binsize))*5; %/200ms*1000ms=spks/s
+                ct_bin{dir,spd}(trial,t)=sum(spk_tp{dir,spd}(trial,t:t+binsize)); %/200ms*1000ms=spks/s
             end
-            isi{dir,spd}{trial,1}=spk_nf{dir,spd}{trial}(2:end)-spk_nf{dir,spd}{trial}(1:end-1);
+            isi{dir,spd}=[isi{dir,spd};spk_nf{dir,spd}{trial}(2:end)-spk_nf{dir,spd}{trial}(1:end-1)];
         end
-%       cumct_bin{dir,spd}=cumsum(spk_tp{dir,spd},2);  
+      cumct_bin{dir,spd}=cumsum(spk_tp{dir,spd},2);  
+%     plot(mean(fr_bin{dir,spd},1));
 %     hold all
     end
 end
 %
-for dir=1:numdirs
-    plot([21:400],mean(ct_bin{dir,4},1),'Color',colors(dir,:),'LineWidth',1.5);hold all
-end
-
-set(gca,'FontSize',18')
-ylabel('Firing Rate (spikes/s)','FontSize',18)
-xlabel('Time (ms)','FontSize',18)
-legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside')
-
-%%
-kind=2;
-
-if kind==1
-    response=cumct_bin;
-    tag='from cumulative binned spike count';
-elseif kind==2
-    response=ct_bin;
-    tag=' from binned spike count';
-elseif kind==3
-    response=isi;
-    tag=' from ISI';
-end
-    
-%  finite-size corrected info
-
-%use spd info to find optimal nBins_y
-
-% data_x=cell(1,numdirs);
-% data_y=cell(1,numdirs);
-% fracs=[1 0.9 0.8 0.5];
-% nreps=20;
-% 
-% for dir=1:numdirs
-%     for spd=1:numspds
-%         data_x{dir}=[data_x{dir};ones(size(response{dir,spd})).*spds(spd)];
-%         data_y{dir}=[data_y{dir};response{dir,spd}];
-%     end
-% end
-% h1=figure;
-% h2=figure;
-% nBins_x=5;
-% %%
-% bn=200:20:400
-% colors=distinguishable_colors(length(bn));
-% for ind=1:length(bn)
-%     for dir=6 
-%         xdata=data_x{dir}';
-%         ydata=data_y{dir}';
-%         stimval=trialdirs_rot(dir);
-%         nBins_y=bn(ind);
-%         info_forarup
-%         %alt:calc_info_P_joint but so many problems with data_x and
-%         %data_y: no 0s allowed in response? max(data) must be less than n_
-%         %(number of bins)? wtf
-%     %     for t=1:size(data_x{dir},2)
-%     %         n_x=5;
-%     %         n_y=max(data_y{dir}(:,t));
-%     %         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
-%     %     end
-%         I_spd{dir}=Iinf;
-% 
-%     end
-% end
-
-%
-if kind==1||kind==2
-    
-%spd info
-data_x=cell(1,numdirs);
-data_y=cell(1,numdirs);
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-colors=distinguishable_colors(numdirs);
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x{dir}=[data_x{dir};ones(size(response{dir,spd})).*spds(spd)];
-        data_y{dir}=[data_y{dir};response{dir,spd}];
+blorp
+for kind=1:3
+    if kind==1
+        clear I_dir I_dir_comb I_dir_comb_std I_dir_mean I_dir_xspd I_dirspd_joint...
+        I_dirspd_joint_1d I_dirspd_joint_1d_shuffle I_dirspd_joint_shuffle I_spd I_spd_comb I_spd_comb_std I_spd_mean I_spd_xdir Iinf Iinf_shuffle...
+        Ixy Ixy_shuffle Ixyz Ixyz_shuffle Ntrialsfrac OUTH OUTM Pjoint Pjoint_shuffle Ptemp Ptemp2 Ptempy PtempyGx Ptempz PtempzGxy Px Pxy Sinf Sinf_shuffle...
+        Snoise_inf Snoise_inf_shuffle Sy Sy_given_x Sy_given_x_shuffle Sy_shuffle Sz Sz_given_xy Sz_given_xy_shuffle Sz_given_y Sz_shuffle Xdata Xdata_r...
+        Ydata Ydata_r Zdata Zdata_r
+        response=cumct_bin;
+        tag='from cumulative binned spike count';    
+        info_jointdirspd
+    elseif kind==2
+        clear I_dir I_dir_comb I_dir_comb_std I_dir_mean I_dir_xspd I_dirspd_joint...
+        I_dirspd_joint_1d I_dirspd_joint_1d_shuffle I_dirspd_joint_shuffle I_spd I_spd_comb I_spd_comb_std I_spd_mean I_spd_xdir Iinf Iinf_shuffle...
+        Ixy Ixy_shuffle Ixyz Ixyz_shuffle Ntrialsfrac OUTH OUTM Pjoint Pjoint_shuffle Ptemp Ptemp2 Ptempy PtempyGx Ptempz PtempzGxy Px Pxy Sinf Sinf_shuffle...
+        Snoise_inf Snoise_inf_shuffle Sy Sy_given_x Sy_given_x_shuffle Sy_shuffle Sz Sz_given_xy Sz_given_xy_shuffle Sz_given_y Sz_shuffle Xdata Xdata_r...
+        Ydata Ydata_r Zdata Zdata_r
+        response=ct_bin;
+        tag=' from binned spike count';
+        info_jointdirspd
+    elseif kind==3
+        clear I_dir I_dir_comb I_dir_comb_std I_dir_mean I_dir_xspd I_dirspd_joint...
+        I_dirspd_joint_1d I_dirspd_joint_1d_shuffle I_dirspd_joint_shuffle I_spd I_spd_comb I_spd_comb_std I_spd_mean I_spd_xdir Iinf Iinf_shuffle...
+        Ixy Ixy_shuffle Ixyz Ixyz_shuffle Ntrialsfrac OUTH OUTM Pjoint Pjoint_shuffle Ptemp Ptemp2 Ptempy PtempyGx Ptempz PtempzGxy Px Pxy Sinf Sinf_shuffle...
+        Snoise_inf Snoise_inf_shuffle Sy Sy_given_x Sy_given_x_shuffle Sy_shuffle Sz Sz_given_xy Sz_given_xy_shuffle Sz_given_y Sz_shuffle Xdata Xdata_r...
+        Ydata Ydata_r Zdata Zdata_r
+        response=isi;
+        tag=' from ISI';
+        info_jointdirspd
     end
 end
-h1=figure;
-h2=figure;
-nBins_x=5;
-%
-nBins_y=30;
-
-for ind=1:numdirs
-    xdata=data_x{ind}';
-    ydata=data_y{ind}';
-    stimval=trialdirs_rot(ind);
-    info_forarup
-    %alt:calc_info_P_joint but so many problems with data_x and
-    %data_y: no 0s allowed in response? max(data) must be less than n_
-    %(number of bins)? wtf
-%     for t=1:size(data_x{dir},2)
-%         n_x=5;
-%         n_y=max(data_y{dir}(:,t));
-%         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
-%     end
-    I_spd{ind}=Iinf;
-
-end
-
-%
-
-figure(h1)
-legend(cellstr(num2str(trialdirs_rot')))
-
-figure(h2)
-title(['I(v,r)',tag])
-I_spd_comb=[];
-I_spd_comb_std=[];
-
-for i=1:numspds
-    I_spd_comb=[I_spd_comb,I_spd{i}(:,2)];
-    I_spd_comb_std=[I_spd_comb_std,I_spd{i}(:,3)];
-
-end
-I_spd_mean(:,1)=mean(I_spd_comb,2);
-I_spd_mean(:,2)=mean(I_spd_comb_std,2);
-
-plot(I_spd_mean(:,1),'k')
-legend([cellstr(num2str(trialdirs_rot'));{'mean'}])
-
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_spd.fig'])
-
-close all
-%
-
-
-% dir info
-data_x=cell(1,numspds);
-data_y=cell(1,numspds);
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x{spd}=[data_x{spd};ones(size(response{dir,spd})).*trialdirs_rot(dir)];
-        data_y{spd}=[data_y{spd};response{dir,spd}];
-    end
-end
-h1=figure;
-h2=figure;
-nBins_x=12;
-nBins_y=30;
-for ind=1:numspds
-    xdata=data_x{ind}';
-    ydata=data_y{ind}';
-    stimval=spds(ind);
-    info_forarup
-    %alt:calc_info_P_joint but so many problems with data_x and
-    %data_y: no 0s allowed in response? max(data) must be less than n_
-    %(number of bins)? wtf
-%     for t=1:size(data_x{dir},2)
-%         n_x=5;
-%         n_y=max(data_y{dir}(:,t));
-%         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
-%     end
-    I_dir{ind}=Iinf;
-end
-I_dir_comb=[];
-I_dir_comb_std=[];
-
-for i=1:numspds
-    I_dir_comb=[I_dir_comb,I_dir{i}(:,2)];
-    I_dir_comb_std=[I_dir_comb_std,I_dir{i}(:,3)];
-
-end
-I_dir_mean(:,1)=mean(I_dir_comb,2);
-I_dir_mean(:,2)=mean(I_dir_comb_std,2);
-    
-
-figure(h1)
-legend(cellstr(num2str(spds')))
-title(['I(theta,r) at data fracs'])
-
-figure(h2)
-plot(I_dir_mean(:,1),'k')
-legend([cellstr(num2str(spds'));{'mean'}])
-title(['I(theta,r)',tag])
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dir.fig'])
-close all
-%
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir','I_spd','I_dir_mean','I_spd_mean','response')
-
-% info for each variable combined across other variable
-
-% spd info
-data_x=[];
-data_y=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-nBins_x=5;
-nBins_y=30;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x=[data_x;ones(size(response{dir,spd})).*spds(spd)];
-        data_y=[data_y;response{dir,spd}];
-    end
-end
-
-ind=1;
-
-% 
-h1=figure;
-h2=figure;
-colors=distinguishable_colors(numdirs);
-xdata=data_x';
-ydata=data_y';
-info_forarup
-I_spd_xdir=Iinf;
-
-figure(h2)
-title(['I(v,r), all directions',tag])
-hold all;
-% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_spd_mean')
-plot(I_spd_mean,'k')
-legend('all directions','average')
-
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_spd(alldirs).fig'])
-close all
-
-%
-%dir info
-data_x=[];
-data_y=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-nBins_x=12;
-nBins_y=30;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x=[data_x;ones(size(response{dir,spd})).*trialdirs_rot(dir)];
-        data_y=[data_y;response{dir,spd}];
-    end
-end
-h1=figure;
-h2=figure;
-colors=distinguishable_colors(numspds);
-ind=1;
-xdata=data_x';
-ydata=data_y';
-info_forarup
-I_dir_xspd=Iinf;
-%
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_combined.mat'],'I_dir_xspd','I_spd_xdir')
-
-figure(h2)
-title(['I(theta,r), all speeds',tag])
-hold all;
-% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir_mean')
-plot(I_dir_mean,'k')
-legend('all speeds','average')
-
-
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dir(allspds).fig'])
-
-% info for 1-dimensional joint dir-spd distribution
-
-data_x=[];
-data_y=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        triind=sub2ind([numdirs,numspds],dir,spd);       
-        data_x=[data_x;ones(size(response{dir,spd})).*triind];
-        data_y=[data_y;response{dir,spd}];
-    end
-end
-% h1=figure;
-% h2=figure;
-% ind=1;
-% colors=distinguishable_colors(numdirs);
-xdata=data_x';
-ydata=data_y';
-
-nBins_x=60;
-nBins_y=30;
-
-%
-h1=figure;
-h2=figure;
-info_forarup
-I_dirspd_joint_1d=Iinf;
-I_dirspd_joint_1d_shuffle=Iinf_shuffle;
-
-errorbar([1:length(I_dirspd_joint_1d_shuffle)]+tShift,I_dirspd_joint_1d_shuffle(:,2),I_dirspd_joint_1d_shuffle(:,3),'Color',[0.5 0.5 0.5]);
-title(['Mutual info of 1-dimensional stimulus and response',tag])
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint1d.fig'])
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_dirspd_joint1d.mat'],'I_dirspd_joint_1d','I_dirspd_joint_1d_shuffle')
-% info for joint dir-spd distribution
-
-data_x=[];
-data_y=[];
-data_z=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-
-for dir=1:numdirs
-    for spd=1:numspds
-%         triind=sub2ind([numdirs,numspds],dir,spd); 
-        data_x=[data_x;ones(size(response{dir,spd})).*trialdirs_rot(dir)];
-        data_y=[data_y;ones(size(response{dir,spd})).*spds(spd)];
-        data_z=[data_z;response{dir,spd}];%         
-%         data_x=[data_x;ones(size(fr_cum_bin{dir,spd})).*triind];
-%         data_y=[data_y;fr_cum_bin{dir,spd}];
-
-    end
-end
-h1=figure;
-h2=figure;
-ind=1;
-% colors=distinguishable_colors(numdirs);
-xdata=data_x';
-ydata=data_y';
-zdata=data_z';
-
-nBins_x=12;
-nBins_y=5;
-nBins_z=30;
-%
-info_forarup2d
-I_dirspd_joint=Iinf;
-I_dirspd_joint_shuffle=Iinf_shuffle;
-
-%
-
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_dirspd_joint.mat'],'I_dirspd_joint','I_dirspd_joint_shuffle')
-%%
-% %for binct
-tShift=20;
-% %for cumct
-% tShift=0;
-
-h=figure;
-% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'])
-errorbar([1:length(I_dirspd_joint)]+tShift,I_dirspd_joint(:,2),I_dirspd_joint(:,3),'k');
-hold on
-errorbar([1:length(I_dirspd_joint_shuffle)]+tShift,I_dirspd_joint_shuffle(:,2),I_dirspd_joint_shuffle(:,3),'Color',[0.5 0.5 0.5]);
-
-load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_combined.mat'],'I_dir_xspd','I_spd_xdir')
-errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2),I_dir_xspd(:,3),'r');hold all
-errorbar([1:length(I_spd_xdir)]+tShift,I_spd_xdir(:,2),I_spd_xdir(:,3),'b');
-errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2)+I_spd_xdir(:,2),mean([I_dir_xspd(:,3),I_spd_xdir(:,3)],2),'Color',[1, 0.1034,0.7241]); %purple
-[legh,objh,~,~]=legend('I((\theta,v),r)','I(\theta,v),r) shuffled','I(\theta,r), all v','I(v,r), all \theta','\Sigma I(\theta,r) I(v,r)');
-% set(objh,'LineWidth',2)
-legh=findobj(gcf,'Type','axes','Tag','legend');
-set(legh,'Location','SouthOutside','FontSize',18)
-lc=get(legh,'Children');
-for i=[1 3 5 7 9]
-    ts=get(get(lc(i),'Children'),'Children');
-    set(ts(2),'LineWidth',3)
-end
-
-set(gca,'FontSize',18)
-xlim([-50 450])
-ylim([-0.2 1.5])
-ylabel('Information from binned spike count (bits)','FontSize',18)
-
-% ylim([-0.2 2.5])
-% ylabel('Information from cumulative spike count (bits)','FontSize',18)
-xlabel('Time (ms)')
-yh=findobj(gcf,'Type','axes','Tag','ylabel');
-set(yh,'FontSize',18)
-
-tag='';
-title([' Unit ', num2str(neuron_idx),tag],'Interpreter','none','FontSize',14)
-saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint together.fig'])
-%
-h=figure;
-
-errorbar([1:length(I_dirspd_joint)]+tShift,I_dirspd_joint(:,2),I_dirspd_joint(:,3),'k');
-hold on
-errorbar([1:length(I_dirspd_joint_shuffle)]+tShift,I_dirspd_joint_shuffle(:,2),I_dirspd_joint_shuffle(:,3),'Color',[0.5 0.5 0.5]);
-
-load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir','I_spd','I_dir_mean','I_spd_mean')
-
-errorbar([1:length(I_dir_mean)]+tShift,I_dir_mean(:,1),I_dir_mean(:,2),'y');
-errorbar([1:length(I_spd_mean)]+tShift,I_spd_mean(:,1),I_spd_mean(:,2),'g');
-errorbar([1:length(I_dir_mean)]+tShift,I_dir_mean(:,1)+I_spd_mean(:,1),mean([I_dir_mean(:,2),I_spd_mean(:,2)],2),'Color',[0,.7,0.7]); %teal
-
-[legh,objh,OUTH,OUTM]=legend('I({\theta,v},r)','I({\theta,v},r) shuffled','Mean of v-separated I(\theta,r)','Mean of \theta-separated I(v,r)','Sum of mean separated I(\theta,r) and I(v,r)');
-set(legh,'Interpreter','none','Location','SouthOutside')
-% set(OBJH,'LineWidth',2)
-title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
-
-saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint separated.fig'])
-end
-%%
-if kind==3
-% if using ISI
-    
-    %use spd info to find optimal nBins_y
-
-data_x=cell(1,numdirs);
-data_y=cell(1,numdirs);
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x{dir}=[data_x{dir},ones(size(response{dir,spd})).*spds(spd)];
-        for trial=1:size(response{dir,spd})
-            data_y{dir}=[data_y{dir},response{dir,spd}{trial}];
-        end
-    end
-end
-h1=figure;
-h2=figure;
-nBins_x=5;
-%
-bn=200:20:400
-colors=distinguishable_colors(length(bn));
-for ind=1:length(bn)
-    for dir=6 
-        xdata=data_x{dir}';
-        ydata=data_y{dir}';
-        stimval=trialdirs_rot(dir);
-        nBins_y=bn(ind);
-        info_forarup
-        %alt:calc_info_P_joint but so many problems with data_x and
-        %data_y: no 0s allowed in response? max(data) must be less than n_
-        %(number of bins)? wtf
-    %     for t=1:size(data_x{dir},2)
-    %         n_x=5;
-    %         n_y=max(data_y{dir}(:,t));
-    %         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
-    %     end
-        I_spd{dir}=Iinf;
-
-    end
-end
-%
-% spd info
-data_x=cell(1,numdirs);
-data_y=cell(1,numdirs);
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-colors=distinguishable_colors(numdirs);
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x{dir}=[data_x{dir};ones(size(response{dir,spd})).*spds(spd)];
-        data_y{dir}=[data_y{dir};response{dir,spd}];
-    end
-end
-h1=figure;
-h2=figure;
-nBins_x=5;
-%
-nBins_y=30;
-
-for ind=1:numdirs
-    xdata=data_x{ind}';
-    ydata=data_y{ind}';
-    stimval=trialdirs_rot(ind);
-    info_forarup
-    %alt:calc_info_P_joint but so many problems with data_x and
-    %data_y: no 0s allowed in response? max(data) must be less than n_
-    %(number of bins)? wtf
-%     for t=1:size(data_x{dir},2)
-%         n_x=5;
-%         n_y=max(data_y{dir}(:,t));
-%         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
-%     end
-    I_spd{ind}=Iinf;
-
-end
-
-%
-
-figure(h1)
-legend(cellstr(num2str(trialdirs_rot')))
-
-figure(h2)
-title(['I(v,r)',tag])
-I_spd_comb=[];
-I_spd_comb_std=[];
-
-for i=1:numspds
-    I_spd_comb=[I_spd_comb,I_spd{i}(:,2)];
-    I_spd_comb_std=[I_spd_comb_std,I_spd{i}(:,3)];
-
-end
-I_spd_mean(:,1)=mean(I_spd_comb,2);
-I_spd_mean(:,2)=mean(I_spd_comb_std,2);
-
-plot(I_spd_mean(:,1),'k')
-legend([cellstr(num2str(trialdirs_rot'));{'mean'}])
-
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_spd.fig'])
-
-close all
-%
-
-
-% dir info
-data_x=cell(1,numspds);
-data_y=cell(1,numspds);
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x{spd}=[data_x{spd};ones(size(response{dir,spd})).*trialdirs_rot(dir)];
-        data_y{spd}=[data_y{spd};response{dir,spd}];
-    end
-end
-h1=figure;
-h2=figure;
-nBins_x=12;
-nBins_y=30;
-for ind=1:numspds
-    xdata=data_x{ind}';
-    ydata=data_y{ind}';
-    stimval=spds(ind);
-    info_forarup
-    %alt:calc_info_P_joint but so many problems with data_x and
-    %data_y: no 0s allowed in response? max(data) must be less than n_
-    %(number of bins)? wtf
-%     for t=1:size(data_x{dir},2)
-%         n_x=5;
-%         n_y=max(data_y{dir}(:,t));
-%         [I_spd{dir},I_spd_err_std{dir},I_spd_err_frac,I_spdR,I_spdR_err_std,I_spdR_err_frac,Pjoint, PjointR] = calc_info_P_joint(data_x{dir}(:,t),data_y{dir}(:,t),n_x,n_y,fracs,nreps);
-%     end
-    I_dir{ind}=Iinf;
-end
-I_dir_comb=[];
-I_dir_comb_std=[];
-
-for i=1:numspds
-    I_dir_comb=[I_dir_comb,I_dir{i}(:,2)];
-    I_dir_comb_std=[I_dir_comb_std,I_dir{i}(:,3)];
-
-end
-I_dir_mean(:,1)=mean(I_dir_comb,2);
-I_dir_mean(:,2)=mean(I_dir_comb_std,2);
-    
-
-figure(h1)
-legend(cellstr(num2str(spds')))
-title(['I(theta,r) at data fracs'])
-
-figure(h2)
-plot(I_dir_mean(:,1),'k')
-legend([cellstr(num2str(spds'));{'mean'}])
-title(['I(theta,r)',tag])
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dir.fig'])
-close all
-%
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir','I_spd','I_dir_mean','I_spd_mean','response')
-
-% info for each variable combined across other variable
-
-% spd info
-data_x=[];
-data_y=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-nBins_x=5;
-nBins_y=30;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x=[data_x;ones(size(response{dir,spd})).*spds(spd)];
-        data_y=[data_y;response{dir,spd}];
-    end
-end
-
-ind=1;
-
-% 
-h1=figure;
-h2=figure;
-colors=distinguishable_colors(numdirs);
-xdata=data_x';
-ydata=data_y';
-info_forarup
-I_spd_xdir=Iinf;
-
-figure(h2)
-title(['I(v,r), all directions',tag])
-hold all;
-% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_spd_mean')
-plot(I_spd_mean,'k')
-legend('all directions','average')
-
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_spd(alldirs).fig'])
-close all
-
-%
-%dir info
-data_x=[];
-data_y=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-nBins_x=12;
-nBins_y=30;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        data_x=[data_x;ones(size(response{dir,spd})).*trialdirs_rot(dir)];
-        data_y=[data_y;response{dir,spd}];
-    end
-end
-h1=figure;
-h2=figure;
-colors=distinguishable_colors(numspds);
-ind=1;
-xdata=data_x';
-ydata=data_y';
-info_forarup
-I_dir_xspd=Iinf;
-%
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_combined.mat'],'I_dir_xspd','I_spd_xdir')
-
-figure(h2)
-title(['I(theta,r), all speeds',tag])
-hold all;
-% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir_mean')
-plot(I_dir_mean,'k')
-legend('all speeds','average')
-
-
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dir(allspds).fig'])
-
-% info for 1-dimensional joint dir-spd distribution
-
-data_x=[];
-data_y=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-
-for dir=1:numdirs
-    for spd=1:numspds
-        triind=sub2ind([numdirs,numspds],dir,spd);       
-        data_x=[data_x;ones(size(response{dir,spd})).*triind];
-        data_y=[data_y;response{dir,spd}];
-    end
-end
-% h1=figure;
-% h2=figure;
-% ind=1;
-% colors=distinguishable_colors(numdirs);
-xdata=data_x';
-ydata=data_y';
-
-nBins_x=60;
-nBins_y=30;
-
-%
-h1=figure;
-h2=figure;
-info_forarup
-I_dirspd_joint_1d=Iinf;
-I_dirspd_joint_1d_shuffle=Iinf_shuffle;
-
-errorbar([1:length(I_dirspd_joint_1d_shuffle)]+tShift,I_dirspd_joint_1d_shuffle(:,2),I_dirspd_joint_1d_shuffle(:,3),'Color',[0.5 0.5 0.5]);
-title(['Mutual info of 1-dimensional stimulus and response',tag])
-saveas(h2,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint1d.fig'])
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_dirspd_joint1d.mat'],'I_dirspd_joint_1d','I_dirspd_joint_1d_shuffle')
-% info for joint dir-spd distribution
-
-data_x=[];
-data_y=[];
-data_z=[];
-fracs=[1 0.9 0.8 0.5];
-nreps=20;
-
-for dir=1:numdirs
-    for spd=1:numspds
-%         triind=sub2ind([numdirs,numspds],dir,spd); 
-        data_x=[data_x;ones(size(response{dir,spd})).*trialdirs_rot(dir)];
-        data_y=[data_y;ones(size(response{dir,spd})).*spds(spd)];
-        data_z=[data_z;response{dir,spd}];%         
-%         data_x=[data_x;ones(size(fr_cum_bin{dir,spd})).*triind];
-%         data_y=[data_y;fr_cum_bin{dir,spd}];
-
-    end
-end
-h1=figure;
-h2=figure;
-ind=1;
-% colors=distinguishable_colors(numdirs);
-xdata=data_x';
-ydata=data_y';
-zdata=data_z';
-
-nBins_x=12;
-nBins_y=5;
-nBins_z=30;
-%
-info_forarup2d
-I_dirspd_joint=Iinf;
-I_dirspd_joint_shuffle=Iinf_shuffle;
-
-%
-
-save([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_dirspd_joint.mat'],'I_dirspd_joint','I_dirspd_joint_shuffle')
-
-h=figure;
-% load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir_mean')
-errorbar([1:length(I_dirspd_joint)]+tShift,I_dirspd_joint(:,2),I_dirspd_joint(:,3),'k');
-hold on
-errorbar([1:length(I_dirspd_joint_shuffle)]+tShift,I_dirspd_joint_shuffle(:,2),I_dirspd_joint_shuffle(:,3),'Color',[0.5 0.5 0.5]);
-
-load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'_combined.mat'],'I_dir_xspd','I_spd_xdir')
-errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2),I_dir_xspd(:,3),'r');
-errorbar([1:length(I_spd_xdir)]+tShift,I_spd_xdir(:,2),I_spd_xdir(:,3),'b');
-errorbar([1:length(I_dir_xspd)]+tShift,I_dir_xspd(:,2)+I_spd_xdir(:,2),mean([I_dir_xspd(:,3),I_spd_xdir(:,3)],2),'Color',[1, 0.1034,0.7241]); %purple
-[legh,objh,~,~]=legend('I({theta,v},r)','I({theta,v},r) shuffled','I(theta,r), all v','I(v,r), all theta','Sum I(theta,r) I(v,r)');
-set(legh,'Interpreter','none','Location','SouthOutside','FontSize',14)
-lc=get(legh,'Children');
-for i=[1 3 5 7 9]
-    ts=get(get(lc(i),'Children'),'Children');
-    set(ts(2),'LineWidth',2)
-end
-
-% title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
-th=get(gca,'Title');
-set(th,'FontSize',15)
-saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint together.fig'])
-%
-h=figure;
-
-errorbar([1:length(I_dirspd_joint)]+tShift,I_dirspd_joint(:,2),I_dirspd_joint(:,3),'k');
-hold on
-errorbar([1:length(I_dirspd_joint_shuffle)]+tShift,I_dirspd_joint_shuffle(:,2),I_dirspd_joint_shuffle(:,3),'Color',[0.5 0.5 0.5]);
-
-load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_dir','I_spd','I_dir_mean','I_spd_mean')
-
-errorbar([1:length(I_dir_mean)]+tShift,I_dir_mean(:,1),I_dir_mean(:,2),'y');
-errorbar([1:length(I_spd_mean)]+tShift,I_spd_mean(:,1),I_spd_mean(:,2),'g');
-errorbar([1:length(I_dir_mean)]+tShift,I_dir_mean(:,1)+I_spd_mean(:,1),mean([I_dir_mean(:,2),I_spd_mean(:,2)],2),'Color',[0,.7,0.7]); %teal
-
-[legh,objh,OUTH,OUTM]=legend('I({theta,v},r)','I({theta,v},r) shuffled','Mean of v-separated I(theta,r)','Mean of theta-separated I(v,r)','Sum of mean separated I(theta,r) and I(v,r)');
-set(legh,'Interpreter','none','Location','SouthOutside','FontSize',14)
-lc=get(legh,'Children');
-for i=[1 3 5 7 9]
-    ts=get(get(lc(i),'Children'),'Children');
-    set(ts(2),'LineWidth',2)
-end
-title(['Information, ' experiment, ' Unit ', num2str(neuron_idx),tag],'Interpreter','none')
-th=set(gca,'Title');
-set(th,'FontSize',15)
-
-saveas(h,[experiment,'_Unit ',num2str(neuron_idx),'_I_dirspd_joint separated.fig'])
-end %for count vs. isi loop
-% end %for neuron loop
-
+ end
  %% stimulus-specific info from butts/goldman 2006 and mutual info of dir and spkct
 % timebin=20;
 % maxK=50;
@@ -1407,24 +694,24 @@ end %for count vs. isi loop
 % title('specific information of response')
 %%
 
-figure;subplot 211;hold all
-for spd=1:numspds
-    errorbar(1:size(mutinfo_dir,1),mean(mutinfo_dir(:,:,spd),2),std(mutinfo_dir(:,:,spd),[],2))
-end
-ylabel('bits')
-xlabel('time (ms)')
-title('mutual information between direction and spike count')
-legend(cellstr(num2str(spds')),'Location','EastOutside');
-
-colors=distinguishable_colors(numdirs);
-subplot 212;
-
-figure;
-hold all
-for dir=1:numdirs
-    errorbar(1:size(mutinfo_spd,1),mean(mutinfo_spd(1:size(mutinfo_spd,1),:,dir),2),std(mutinfo_spd(1:size(mutinfo_spd,1),:,dir),[],2),'Color',colors(dir,:))
-end
-ylabel('bits')
-xlabel('time (ms)')
-title('mutual information between speed and spike count')
-legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside');
+% figure;subplot 211;hold all
+% for spd=1:numspds
+%     errorbar(1:size(mutinfo_dir,1),mean(mutinfo_dir(:,:,spd),2),std(mutinfo_dir(:,:,spd),[],2))
+% end
+% ylabel('bits')
+% xlabel('time (ms)')
+% title('mutual information between direction and spike count')
+% legend(cellstr(num2str(spds')),'Location','EastOutside');
+% 
+% colors=distinguishable_colors(numdirs);
+% subplot 212;
+% 
+% figure;
+% hold all
+% for dir=1:numdirs
+%     errorbar(1:size(mutinfo_spd,1),mean(mutinfo_spd(1:size(mutinfo_spd,1),:,dir),2),std(mutinfo_spd(1:size(mutinfo_spd,1),:,dir),[],2),'Color',colors(dir,:))
+% end
+% ylabel('bits')
+% xlabel('time (ms)')
+% title('mutual information between speed and spike count')
+% legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside');
