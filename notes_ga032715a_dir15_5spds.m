@@ -10,6 +10,7 @@ end
 
 path(path,[rt,'MT/MATLAB/bing_ana']);
 path(path,[rt,'MT/MATLAB']);
+path(path,[rt,'MT/MATLAB/matt_ana/WItoolbox']);
 path(path,[rt,'RMVideo_backup']);
 trialsdir=[rt,'MT/Data/ga032715/maestro'];
 savedir=[rt,'MT/Data/ga032715/mat/'];
