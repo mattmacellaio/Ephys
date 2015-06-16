@@ -238,7 +238,9 @@ plot(1./datafrac,mean(Ixyz(:,:,samptime),2),'x');
 hold on
 idata = polyval(Iinf(samptime,1:2),[0 1./datafrac]);
 plot([0 1./datafrac],idata,'r');
-
+if kind==1
+    saveas(gcf,[experiment,'inffit_joint2d.fig'])
+end
 figure(h2)
 if nWins==1
     errorbar([1:size(Iinf,1)]+tShift,Iinf(:,2),Iinf(:,3),'k');

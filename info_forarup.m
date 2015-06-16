@@ -26,7 +26,7 @@ y_binned_shuffle = reshape(y_binned_shuffle,nWins,size(ydata,2));
 y_binned_1shuffle = reshape(y_binned_1shuffle,nWins,size(ydata,2));
 
     
-datafrac=[1 .95 .90 0.85 .80 .50];
+datafrac=[1 .95 .90 0.85 .80 .70 .60 .50 .40 .30 .20 .10];
 
 ntrials = size(xdata,2);
 Sy = zeros(length(datafrac),numfracreps,nWins);
@@ -127,7 +127,7 @@ for datafracind=1:length(datafrac)
      end
 end %datafrac
 
-nstop=length(datafrac)-1;
+nstop=8;
 %Extrapolate to inf data size
 % Use the intercept (2nd value)
 for tt = 1:nWins
@@ -169,9 +169,15 @@ plot(1./datafrac,mean(Ixy(:,:,samptime),2),'x');
 hold on
 idata = polyval(Iinf(samptime,1:2),[0 1./datafrac]);
 plot([0 1./datafrac],idata,'Color',colors(ind,:));
-
+if kind==2
+    saveas(gcf,[experiment,'inffit_',figtag,'.fig'])
+end
 %
-tShift=0;
+if kind==2
+    tShift=20;
+else
+    tShift=0;
+end
 
 figure(h2)
 if nWins==1

@@ -24,7 +24,6 @@ numfracreps=20;
 %         end
 %         data_y_shuffle=[data_y_shuffle;tmp];
 %     end
-%     end
 % end
 % h1=figure;
 % h2=figure;
@@ -171,6 +170,7 @@ colors=distinguishable_colors(numdirs);
 xdata=data_x';
 ydata=data_y';
 ydata_1shuffle=data_y_shuffle';
+figtag='spd';
 info_forarup
 I_spd_xdir=Iinf;
 I_spd_xdir_poiss_shuffle=Iinf_1shuffle;
@@ -217,6 +217,7 @@ ind=1;
 xdata=data_x';
 ydata=data_y';
 ydata_1shuffle=data_y_shuffle';
+figtag='dir';
 info_forarup
 I_dir_xspd=Iinf;
 I_dir_xspd_poiss_shuffle=Iinf_1shuffle;
@@ -269,6 +270,7 @@ nBins_y=30;
 h1=figure;
 h2=figure;
 ydata_1shuffle=data_y_shuffle';
+figtag='joint1d';
 info_forarup
 I_dirspd_joint_1d=Iinf;
 I_dirspd_joint_1d_shuffle=Iinf_shuffle;
