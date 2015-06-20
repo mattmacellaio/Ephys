@@ -1,3 +1,4 @@
+close all
 try
     load([savedir,'data.mat'])
 catch
@@ -245,9 +246,6 @@ end
 %for each seg
 %get mean nstimdir and mean nstimspd to check
 
-neuron_idx=1;
-
-
 
 spikes=nexFile.neurons{neuron_idx}.timestamps;
 %
@@ -383,11 +381,15 @@ for dir=1:numdirs
     end
 end
 figure;imagesc(trialdirs_rot,spds,spk_ct_mean');colormap('jet');colorbar
-set(gca,'YTick',[2:13.5:13.5*8+2],'YTickLabel',spds)
+set(gca,'YTick',[(2:13.5:13.5*8+2).*str2num(num2str(prefSpd))],'YTickLabel',spds)
 xlabel('Direction');ylabel('Speed')
-save([experiment,'2dtunecurve.mat'],'spk_ct_mean');
 %%
-saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_2dtunecurve.fig'])
+savedir=[rt,'MT/MATLAB/matt_ana/Info/',experiment(1:8)];
+
+mkdir(savedir);
+save([savedir,'/',experiment,'2dtunecurve.mat'],'spk_ct_mean');
+%
+saveas(gcf,[savedir,'/',experiment,'_unit ',num2str(neuron_idx),'_2dtunecurve.fig'])
 
 figure;hold all
 for i=1:numspds
@@ -395,7 +397,7 @@ for i=1:numspds
 end
 legend(cellstr(num2str(spds')));
 title([experiment,' unit',num2str(neuron_idx),'Direction Tuning'])
-saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_dirtune.fig'])
+saveas(gcf,[savedir,'/',experiment,'_unit ',num2str(neuron_idx),'_dirtune.fig'])
 %
 colors=distinguishable_colors(numdirs);
 figure;
@@ -404,8 +406,8 @@ for i=1:numdirs
 end
 set(gca,'XTick',[1 2 4 8 16 32 64 96],'XTickLabel',[1 2 4 8 16 32 64 96])
 legend(cellstr(num2str(trialdirs_rot')),'Location','EastOutside')
-saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_spdtune.fig'])
-%%
+saveas(gcf,[savedir,'/',experiment,'_unit ',num2str(neuron_idx),'_spdtune.fig'])
+%
 % bin
 binsize=20;
 colorsdir=distinguishable_colors(numdirs);
@@ -430,7 +432,7 @@ for dir=1:numdirs
         cumct_bin{dir,spd}=cumsum(spk_tp{dir,spd},2);  
         figure(100)
         subplot(2,4,spd)
-        plot(mean(ct_bin{dir,spd},1),'Color',colorsdir(dir,:));
+        plot(dir+mean(ct_bin{dir,spd},1),'Color',colorsdir(dir,:));
         hold all
         title([num2str(spds(spd)),' dps'])
         if sum(spd==[1 5])
@@ -438,7 +440,7 @@ for dir=1:numdirs
         end
         figure(101)
         subplot(3,4,dir)
-        plot(mean(ct_bin{dir,spd},1),'Color',colorsspd(spd,:));
+        plot(spd+mean(ct_bin{dir,spd},1),'Color',colorsspd(spd,:));
         hold all
         title([num2str(trialdirs_rot(dir)),' degrees'])
         if sum(dir==[1 5 9])
@@ -448,17 +450,26 @@ for dir=1:numdirs
     end
 end
 maxfig(100,1)
-saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_psth_spd.fig'])
+saveas(gcf,[savedir,'/',experiment,'_unit ',num2str(neuron_idx),'_psth_spd.fig'])
 maxfig(101,1)
-saveas(gcf,[experiment,'_unit ',num2str(neuron_idx),'_psth_dir.fig'])
+saveas(gcf,[savedir,'/',experiment,'_unit ',num2str(neuron_idx),'_psth_dir.fig'])
 %%
+close all
 figure
+writerObj=VideoWriter([savedir,'/',experiment,'2dtunecurve.avi']);
+set(writerObj,'FrameRate',10,'Quality',30)
+open(writerObj)
 for t=1:400
-    imagesc(trialdirs_rot,spds,tunecurve_2d(:,:,t)',[0 4.2]);colormap('jet');colorbar
+    imagesc(trialdirs_rot,spds,tunecurve_2d(:,:,t)',[0 max(max(max(tunecurve_2d)))]);colormap('jet');colorbar
     set(gca,'YTick',[2:13.5:13.5*8+2],'YTickLabel',spds)
-    xlabel('Direction');ylabel('Speed');title([num2str(t),' ms'])
-    pause(0.01)
+    xlabel('Direction','FontSize',16);ylabel('Speed','FontSize',16);title([num2str(t),' ms'],'FontSize',16)
+    set(gcf, 'Position', [100, 100, 1000, 800]);    
+    F=getframe(gcf);
+    writeVideo(writerObj,F);
 end
+
+close(writerObj)
+bork
     
 %% %%
 for kind=1:3

@@ -1,5 +1,5 @@
 % load xdata, ydata the arrays for which you wish to compute the mutual information
-% arrays are assumed to by time x trials
+% arrays are assumed to be time x trials
 % appropriately windowed so that xdata and ydata have length nWins
 % create shuffled versions
 nWins = size(xdata,1);
@@ -7,7 +7,7 @@ xdata_shuffle = xdata(randperm(size(xdata,1)),randperm(size(xdata,2)));
 ydata_shuffle = ydata(randperm(size(ydata,1)),randperm(size(ydata,2)));
 
 % Bin data
-% test different values, the number you can use depends on the data sample
+% actually this is x_binned, bin_centers, bin_edges (missing bin_occupancy)
 [x_binned,x_cuts,x_occ] = adaptbin(reshape(xdata,1,numel(xdata)),nBins_x);
 x_binned = reshape(x_binned,nWins,size(xdata,2));
 [y_binned,y_cuts,y_occ] = adaptbin(reshape(ydata,1,numel(ydata)),nBins_y);
@@ -18,10 +18,6 @@ x_binned_shuffle = reshape(x_binned_shuffle,nWins,size(xdata,2));
 [y_binned_shuffle,y_cuts_shuffle,y_occ_shuffle] = adaptbin(reshape(ydata_shuffle,1,numel(ydata)),nBins_y);
 y_binned_shuffle = reshape(y_binned_shuffle,nWins,size(ydata,2));
 
-%proooobably should check on this
-% if ~exist('ydata_1shuffle')
-%     ydata_1shuffle=ydata_shuffle;
-% end
 [y_binned_1shuffle,y_cuts_1shuffle,y_occ_1shuffle] = adaptbin(reshape(ydata_1shuffle,1,numel(ydata)),nBins_y);
 y_binned_1shuffle = reshape(y_binned_1shuffle,nWins,size(ydata,2));
 

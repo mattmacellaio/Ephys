@@ -6,6 +6,8 @@ elseif kind==2
 elseif kind==3
     savedir=[rt,'MT/MATLAB/matt_ana/Info/',experiment(1:8),'/isi/'];
 end
+mkdir(savedir);
+
 numfracreps=20;
 
 % %spd info
@@ -160,7 +162,39 @@ for dir=1:numdirs
         data_y_shuffle=[data_y_shuffle;tmp];
     end
 end
+%
 
+%hist of spike counts for each spd at t=[timebin] post-motion onset
+
+if kind==1
+    figure;hold all
+    ls=num2str(spds');
+    l=[' dps'];
+    legadd=repmat(l,numspds,1);
+    spdcolors=distinguishable_colors(numspds);
+    times=[50 100 150 200];
+    set(gcf, 'Position', [100, 100, 1500, 500]);
+
+    for tbin=1:length(times)
+        timebin=times(tbin);
+        for spd=1:numspds
+            spdinds=find(data_x(:,timebin)==spds(spd));
+            subplot(1,4,tbin);hold all
+            hist(data_y(spdinds,timebin),[0:2:max(data_y(:,timebin))])
+            h = findobj(gca,'Type','patch');
+            set(h(1),'FaceColor',spdcolors(spd,:),'EdgeColor','w') %h concatenates new plots at beginning
+        end
+        xlim([0,max(data_y(:,timebin))+1])
+        legend([ls,legadd])
+        title([num2str(timebin),' ms'])
+    end
+    suptitle('Histograms of binned spike count for each speed')
+    legend([ls,legadd]) %suptitle breaks last legend,so have to add it again
+
+    saveas(gcf,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_P(count|speed).fig'])
+end
+
+%
 ind=1;
 
 % 
@@ -181,16 +215,12 @@ hold all;
 % load([experiment,'_mutinfo_Unit',num2str(neuron_idx),'.mat'],'I_spd_mean')
 % plot(I_spd_mean,'k')
 legend('all directions','average')
-try
-    saveas(h2,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_I_spd(alldirs).fig'])
-catch
-    mkdir(savedir);
-    saveas(h2,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_I_spd(alldirs).fig'])
-end
+saveas(h2,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_I_spd(alldirs).fig'])
+
 close all
 
 %
-%dir info
+%% dir info
 data_x=[];
 data_y=[];
 data_y_shuffle=[];
@@ -210,6 +240,37 @@ for dir=1:numdirs
         data_y_shuffle=[data_y_shuffle;tmp];
     end
 end
+
+% hist of cumulative spike counts for each dir at t=[timebin] post-motion onset
+
+if kind==1
+    figure;hold all
+    ls=num2str(trialdirs_rot');
+    l=[' deg'];
+    legadd=repmat(l,numdirs,1);
+    dircolors=distinguishable_colors(numdirs);
+    times=[50 100 150 200];
+    set(gcf, 'Position', [100, 100, 1500, 500]);
+
+    for tbin=1:length(times)
+        timebin=times(tbin);
+        for dir=1:numdirs
+            dirinds=find(data_x(:,timebin)==trialdirs_rot(dir));
+            subplot(1,length(times),tbin);hold all
+            hist(data_y(dirinds,timebin),[0:2:max(data_y(:,timebin))])
+            h = findobj(gca,'Type','patch');
+            set(h(1),'FaceColor',dircolors(dir,:),'EdgeColor','w') %h concatenates new plots at beginning
+        end
+        xlim([0,max(data_y(:,timebin))+1])
+        legend([ls,legadd])
+        title([num2str(timebin),' ms'])
+    end
+    suptitle('Histograms of binned spike count for each direction')
+    legend([ls,legadd]) %suptitle breaks last legend,so have to add it again
+
+    saveas(gcf,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_P(count|dir).fig'])
+end
+%
 h1=figure;
 h2=figure;
 colors=distinguishable_colors(numspds);
@@ -305,6 +366,48 @@ for dir=1:numdirs
         
     end
 end
+
+%conditional joint distribution of direction and speed for each value of 
+%% binned spike count at one time bin
+if kind==1
+    times=[100];
+    for tbin=1:length(times)
+        clear condjtdist
+        figure;
+        ls=num2str(cts');
+        l=[' spikes'];
+        legadd=repmat(l,length(cts),1);
+        
+        cts=0:max(data_z(:,timebin));
+        ctcolors=distinguishable_colors(length(cts));
+        condjtdist=nan(length(trialdirs_rot),length(spds));
+        timebin=times(tbin);
+        
+        for ct=cts;
+            ctinds=find(data_z(:,timebin)==ct);
+            for dir=1:numdirs
+                for spd=1:numspds
+                    dirinds=find(data_x(ctinds,timebin)==trialdirs_rot(dir));
+                    spdinds=find(data_y(ctinds,timebin)==spds(spd));
+                    condjtdist(dir,spd)=length(intersect(dirinds,spdinds));
+                end
+            end
+            bar3(condjtdist)
+            set(gca,'XTickLabel',spds,'YTickLabel',trialdirs_rot)
+            xlabel('Speed');ylabel('Direction')
+            h = findobj(gca,'Type','surface');
+            set(h(1:8),'FaceColor',ctcolors(ct+1,:),'EdgeColor','w') %h concatenates new plots at beginning
+            pause
+        end
+        legend([ls,legadd])
+        title([num2str(timebin),' ms'])
+    end
+    suptitle('Conditional joint distribution of dir/spd for each count')
+    legend([ls,legadd]) %suptitle breaks last legend,so have to add it again
+
+%     saveas(gcf,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_P(count|dir).fig'])
+end
+%%
 h1=figure;
 h2=figure;
 ind=1;
