@@ -38,7 +38,7 @@ numfracreps=20;
 %     ydata=data_y{ind}';
 %     stimval=trialdirs_rot(ind);
 %     
-%     info_forarup
+%     info_calc
 %     %alt:calc_info_P_joint but so many problems with data_x and
 %     %data_y: no 0s allowed in response? max(data) must be less than n_
 %     %(number of bins)? wtf
@@ -104,7 +104,7 @@ numfracreps=20;
 %     xdata=data_x{ind}';
 %     ydata=data_y{ind}';
 %     stimval=spds(ind);
-%     info_forarup
+%     info_calc
 %     %alt:calc_info_P_joint but so many problems with data_x and
 %     %data_y: no 0s allowed in response? max(data) must be less than n_
 %     %(number of bins)? wtf
@@ -149,7 +149,7 @@ data_y=[];
 data_y_shuffle=[];
 fracs=[1 0.9 0.8 0.5];
 nBins_x=numspds;
-nBins_y=30;
+nBins_y=10;
 
 for dir=1:numdirs
     for spd=1:numspds
@@ -164,7 +164,7 @@ for dir=1:numdirs
 end
 %
 
-%hist of spike counts for each spd at t=[timebin] post-motion onset
+%% hist of spike counts for each spd at t=[timebin] post-motion onset
 
 if kind==1
     figure;hold all
@@ -173,28 +173,32 @@ if kind==1
     legadd=repmat(l,numspds,1);
     spdcolors=distinguishable_colors(numspds);
     times=[50 100 150 200];
-    set(gcf, 'Position', [100, 100, 1500, 500]);
+    set(gcf, 'Position', [100, 100, 1000, 1000]);
 
     for tbin=1:length(times)
         timebin=times(tbin);
         for spd=1:numspds
             spdinds=find(data_x(:,timebin)==spds(spd));
-            subplot(1,4,tbin);hold all
+            subplot(numspds,length(times),sub2ind([length(times),numspds],tbin,spd));hold all %changing this from one plot overall to one plot per direction
             hist(data_y(spdinds,timebin),[0:2:max(data_y(:,timebin))])
             h = findobj(gca,'Type','patch');
             set(h(1),'FaceColor',spdcolors(spd,:),'EdgeColor','w') %h concatenates new plots at beginning
+            if spd==1
+                title([num2str(spds(spd)),' dps at ',num2str(timebin),' ms'])
+            else
+                title([num2str(spds(spd)),' dps'])
+            end
+            xlim([0,max(data_y(:,timebin))+1])
         end
-        xlim([0,max(data_y(:,timebin))+1])
-        legend([ls,legadd])
-        title([num2str(timebin),' ms'])
     end
     suptitle('Histograms of binned spike count for each speed')
-    legend([ls,legadd]) %suptitle breaks last legend,so have to add it again
-
-    saveas(gcf,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_P(count|speed).fig'])
+    %suptitle breaks last axes properties,so have to add it again
+%     legend([ls,legadd]) 
+%         xlim([0,max(data_y(:,timebin))+1])
+    saveas(gcf,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_P(countGspeed).fig'])
 end
 
-%
+%%
 ind=1;
 
 % 
@@ -205,7 +209,7 @@ xdata=data_x';
 ydata=data_y';
 ydata_1shuffle=data_y_shuffle';
 figtag='spd';
-info_forarup
+info_calc
 I_spd_xdir=Iinf;
 I_spd_xdir_poiss_shuffle=Iinf_1shuffle;
 
@@ -227,7 +231,7 @@ data_y_shuffle=[];
 
 fracs=[1 0.9 0.8 0.5];
 nBins_x=numdirs;
-nBins_y=30;
+nBins_y=10;
 
 for dir=1:numdirs
     for spd=1:numspds
@@ -241,7 +245,7 @@ for dir=1:numdirs
     end
 end
 
-% hist of cumulative spike counts for each dir at t=[timebin] post-motion onset
+%% hist of cumulative spike counts for each dir at t=[timebin] post-motion onset
 
 if kind==1
     figure;hold all
@@ -250,27 +254,31 @@ if kind==1
     legadd=repmat(l,numdirs,1);
     dircolors=distinguishable_colors(numdirs);
     times=[50 100 150 200];
-    set(gcf, 'Position', [100, 100, 1500, 500]);
 
     for tbin=1:length(times)
         timebin=times(tbin);
         for dir=1:numdirs
             dirinds=find(data_x(:,timebin)==trialdirs_rot(dir));
-            subplot(1,length(times),tbin);hold all
+            subplot(numdirs,length(times),sub2ind([length(times),numdirs],tbin,dir));hold all %changing this from one plot overall to one plot per direction
             hist(data_y(dirinds,timebin),[0:2:max(data_y(:,timebin))])
             h = findobj(gca,'Type','patch');
             set(h(1),'FaceColor',dircolors(dir,:),'EdgeColor','w') %h concatenates new plots at beginning
+            xlim([0 floor(timebin/3)])
+            if dir==1
+                title([num2str(trialdirs_rot(dir)),' deg at ',num2str(timebin),' ms'])
+            else
+                title([num2str(trialdirs_rot(dir)),' deg'])
+            end
         end
-        xlim([0,max(data_y(:,timebin))+1])
-        legend([ls,legadd])
-        title([num2str(timebin),' ms'])
+%         xlim([0,max(data_y(:,timebin))+1])
+%         legend([ls,legadd])
     end
     suptitle('Histograms of binned spike count for each direction')
-    legend([ls,legadd]) %suptitle breaks last legend,so have to add it again
-
-    saveas(gcf,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_P(count|dir).fig'])
+%     legend([ls,legadd]) %suptitle breaks last legend,so have to add it again
+    set(gcf, 'Position', [50, 50, 1300, 1000]);
+    saveas(gcf,[savedir,experiment,'_Unit ',num2str(neuron_idx),'_P(countGdir).fig'])
 end
-%
+%%
 h1=figure;
 h2=figure;
 colors=distinguishable_colors(numspds);
@@ -279,7 +287,7 @@ xdata=data_x';
 ydata=data_y';
 ydata_1shuffle=data_y_shuffle';
 figtag='dir';
-info_forarup
+info_calc
 I_dir_xspd=Iinf;
 I_dir_xspd_poiss_shuffle=Iinf_1shuffle;
 %
@@ -325,14 +333,14 @@ xdata=data_x';
 ydata=data_y';
 
 nBins_x=numdirs*numspds;
-nBins_y=30;
+nBins_y=10;
 
 %
 h1=figure;
 h2=figure;
 ydata_1shuffle=data_y_shuffle';
 figtag='joint1d';
-info_forarup
+info_calc
 I_dirspd_joint_1d=Iinf;
 I_dirspd_joint_1d_shuffle=Iinf_shuffle;
 I_dirspd_joint_1d_poiss_shuffle=Iinf_1shuffle;
@@ -367,18 +375,18 @@ for dir=1:numdirs
     end
 end
 
-%conditional joint distribution of direction and speed for each value of 
-%% binned spike count at one time bin
+%% conditional joint distribution of direction and speed for each value of 
+% binned spike count at one time bin
 if kind==1
     times=[100];
     for tbin=1:length(times)
         clear condjtdist
         figure;
+        cts=0:max(data_z(:,timebin));
         ls=num2str(cts');
         l=[' spikes'];
         legadd=repmat(l,length(cts),1);
         
-        cts=0:max(data_z(:,timebin));
         ctcolors=distinguishable_colors(length(cts));
         condjtdist=nan(length(trialdirs_rot),length(spds));
         timebin=times(tbin);
@@ -392,12 +400,12 @@ if kind==1
                     condjtdist(dir,spd)=length(intersect(dirinds,spdinds));
                 end
             end
+            condjtdist=condjtdist./sum(sum(condjtdist));
             bar3(condjtdist)
             set(gca,'XTickLabel',spds,'YTickLabel',trialdirs_rot)
             xlabel('Speed');ylabel('Direction')
             h = findobj(gca,'Type','surface');
             set(h(1:8),'FaceColor',ctcolors(ct+1,:),'EdgeColor','w') %h concatenates new plots at beginning
-            pause
         end
         legend([ls,legadd])
         title([num2str(timebin),' ms'])
@@ -418,10 +426,10 @@ zdata=data_z';
 
 nBins_x=12;
 nBins_y=5;
-nBins_z=30;
+nBins_z=10;
 zdata_1shuffle=data_z_shuffle';
 %
-info_forarup2d
+info_calc2d
 
 %
 I_dirspd_joint=Iinf;
